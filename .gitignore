@@ -1,4 +1,4 @@
-﻿# Python
+# Python Bytecode & Builds
 __pycache__/
 *.py[cod]
 *.class
@@ -9,25 +9,40 @@ build/
 dist/
 *.egg-info/
 
-# Pytest / Coverage
+# Pytest & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Environments
+# Environments & Security
 .env
-.venv
+.env*
+*.env
+config/.env
+.venv/
 venv/
 
-# Data & DB
-data/*.db
-data/*.sqlite
-logs/*.log
+# Data & Databases (Runtime)
+data/
+*.db
+*.sqlite
+logs/
+*.log
+*.tlog
+*.bin
 
-# IDE
+# IDE & OS
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# Agent Runtime Tokens & Hashes
-.agents/.deploy_token
-.agents/.baseline_hashes.json
+# Internal Engineering Assets (Hidden from Public Showcase)
+/.agents/
+/AGENTS.md
+/일일_작업일지.md
+/자주쓰는 터미널 명령어.md
+/docs/
+/templates/
+
