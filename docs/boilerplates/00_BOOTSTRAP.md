@@ -5,19 +5,21 @@
 
 ### [Phase 0. 엔트리포인트 & 대칭 폴더 뼈대 점검]
 - [ ] 1. 루트 `main.py` 부재 시 `docs/boilerplates/main.py` 배치 (존재 시 스킵)
-- [ ] 2. Two-Pillar 폴더 구조 점검 및 생성 (부재 시 생성):
-  - 뼈대: `src/shared/{core,shell}`, `src/service/{core,shell}`, `src/auth/`
-  - 피처: `src/features/{name}/{core,shell}`, `tests/test_features/`
+- [ ] 2. Three-Tier 폴더 구조 점검 및 생성 (부재 시 생성):
+  - 척추 엔진(Engine): `src/engine/{core,shell}`, `tests/{test_core,test_shell}`
+  - 수직 피처(Features): `src/features/{name}/{core,shell,templates}`, `tests/test_features/{name}`
+  - 정적 자산(Static): `static/{images,audio}` (루트 직속 정적 자산)
+  - 순수 공유함(Shared): `src/shared/` (기본 생성 금지 | 3개 피처 중복 시만 생성)
 
 ---
 
 ### [Phase 1. 아키텍처 핀-테스트 & 전역 샌드박스 배치]
 - [ ] 3. `docs/boilerplates/test_architecture.py`를 `tests/test_shell/test_architecture.py`로 배치 (존재 시 스킵)
-  - **헌법**: 소스(`src/core`, `src/shell`)와 테스트(`tests/test_core`, `tests/test_shell`) 1:1 대칭 분리 및 Zero File Assert 7대 가드 준수
+  - **헌법**: 시스템 척추(`src/engine`)와 테스트(`tests/test_core`, `tests/test_shell`) 1:1 대칭 분리 및 Zero File Assert 7대 가드 준수
 - [ ] 3-1. **[필수 방탄 세트: DB 격리 샌드박스 & 스키마 금고]**
   - `docs/boilerplates/conftest.py` ➔ `tests/conftest.py` 배치 (가상 디스크 샌드박스 자동 주입)
-  - `docs/boilerplates/db_adapter.py` ➔ `src/shared/shell/db_adapter.py` 배치 (SQLite 3대 헌법 & 순수 커넥션 배관)
-  - `docs/boilerplates/db_schema.py` ➔ `src/shared/shell/db_schema.py` 배치 (테이블 DDL & 초기 시드 금고)
+  - `docs/boilerplates/db_adapter.py` ➔ `src/engine/shell/db_adapter.py` 배치 (SQLite 3대 헌법 & 순수 커넥션 배관)
+  - `docs/boilerplates/db_schema.py` ➔ `src/engine/shell/db_schema.py` 배치 (테이블 DDL & 초기 시드 금고)
 - [ ] 3-2. **[Vercel 클라우드 배포 헌법: 서울 리전 고정]**
   - Vercel 배포 시 `docs/boilerplates/vercel.json` ➔ 루트 `vercel.json` 배치 (미국 워싱턴 태평양 왕복 렉 100% 방어용 `"regions": ["icn1"]` 필수 탑재)
 - [ ] 3-3. **[웹 UI 4대 스택 헌법 가드]**
