@@ -154,8 +154,20 @@
     ]
   },
   "feature_boundary_policy": {
+    "engine_dir": "src/engine",
     "features_dir": "src/features",
     "shared_dir": "src/shared",
+    "isolation_rules": {
+      "engine_cannot_import": [
+        "features",
+        "shared"
+      ],
+      "shared_cannot_import": [
+        "features",
+        "engine"
+      ],
+      "cross_feature_banned": true
+    },
     "bypass_features": []
   },
   "tia_policy": {
