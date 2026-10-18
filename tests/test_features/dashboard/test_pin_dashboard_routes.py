@@ -62,3 +62,12 @@ def test_pin_dashboard_renders_active_drones(client: TestClient):
     assert response.status_code == 200
     assert "DRONE-ALPHA" in response.text
     assert "88%" in response.text or "88" in response.text
+
+
+def test_pin_dashboard_backdrop_hero_visible(client: TestClient):
+    """메인 레이아웃 base.html에 드론 키 비주얼 배경 이미지가 적절한 가시성(opacity-45 이상)으로 탑재되었는지 검증."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "drone_gcs_hero.jpg" in response.text
+    assert "opacity-45" in response.text or "opacity-50" in response.text
+
