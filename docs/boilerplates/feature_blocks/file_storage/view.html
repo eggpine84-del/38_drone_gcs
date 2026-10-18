@@ -1,0 +1,20 @@
+<div class="p-6 bg-slate-900 border border-slate-800 rounded-xl text-slate-100">
+    <div class="flex items-center gap-3 mb-6">
+        <svg class="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+        <h2 class="text-base font-semibold">첨부파일 보안 업로드 & 격리 저장</h2>
+    </div>
+
+    <form hx-post="/sample-storage/upload" hx-target="#upload-result" hx-encoding="multipart/form-data" class="space-y-4">
+        <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-lg p-6 text-center transition-colors">
+            <input type="file" name="file" id="file" class="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+            <p class="text-xs text-slate-500 mt-2">PNG, JPG, PDF (최대 5MB, 바이너리 시그니처 자동 검증)</p>
+        </div>
+        <button type="submit" class="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition-all rounded-lg text-sm font-medium">
+            보안 검증 및 업로드
+        </button>
+    </form>
+
+    <div id="upload-result" class="mt-4"></div>
+</div>

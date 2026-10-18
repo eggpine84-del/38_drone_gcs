@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}DRONE-GCS 다중 드론 전술 관제 콘솔{% endblock %}
+
+{% block content %}
+<!-- B-2 Header: 상단 전술 헤더바 (모바일/PC 무짤림 1줄 고정) -->
+<header class="flex items-center justify-between pb-6 mb-8 border-b border-slate-800/80">
+  <div class="flex items-center space-x-3">
+    <!-- 1em 순수 인라인 SVG 관제 레이더 아이콘 -->
+    <div class="p-2.5 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+      <svg class="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 4a6 6 0 106 6 6 6 0 00-6-6zm0 4a2 2 0 102 2 2 2 0 00-2-2z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v4m0 12v4m-10-10h4m12 0h4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl md:text-2xl font-bold font-mono tracking-wider text-slate-100 uppercase">
+        DRONE-GCS <span class="text-cyan-400 font-normal text-sm md:text-base">전술 관제탑 v1.0</span>
+      </h1>
+    </div>
+  </div>
+
+  <!-- 실시간 스트림 연결 인디케이터 (B-6 Status Badge) -->
+  <div class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-mono">
+    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+    <span class="w-2 h-2 rounded-full bg-emerald-500 -ml-3"></span>
+    <span class="text-slate-300">HTMX 실시간 갱신</span>
+  </div>
+</header>
+
+<!-- HTMX 실시간 자동 폴링 컨테이너 (Zero-Lag 비동기 조각 교체) -->
+<div id="drone-stream-container"
+     hx-get="/api/features/dashboard/stream"
+     hx-trigger="every 2s"
+     hx-swap="innerHTML">
+  {% include "drone_card_fragment.html" %}
+</div>
+
+{% endblock %}

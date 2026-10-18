@@ -1,0 +1,40 @@
+{
+  "pre-tool-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content|run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/pre_tool_guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "post-tool-guard": {
+    "enabled": false,
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/post_tool_guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "stop-test-gate": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python scripts/test_gate.py",
+        "timeout": 60
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+<!-- 
+  [View] KPI 대시보드 뷰 템플릿
+  - 기간 필터 클릭 시 htmx로 카드 영역만 부드럽게 새로고침
+-->
+<div class="space-y-4">
+    <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-100">핵심 지표 요약</h3>
+        <div class="flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700">
+            <button hx-get="/sample-kpi?period=today"
+                    hx-target="#kpi-cards-container"
+                    hx-swap="outerHTML"
+                    class="px-3 py-1 text-xs font-semibold text-slate-300 hover:text-white rounded">
+                오늘
+            </button>
+            <button hx-get="/sample-kpi?period=week"
+                    hx-target="#kpi-cards-container"
+                    hx-swap="outerHTML"
+                    class="px-3 py-1 text-xs font-semibold text-slate-300 hover:text-white rounded">
+                이번 주
+            </button>
+        </div>
+    </div>
+    
+    <!-- KPI 카드 영역 -->
+    <div id="kpi-cards-container" hx-get="/sample-kpi?period=today" hx-trigger="load" hx-swap="outerHTML">
+        <!-- 초기 로드 시 렌더링 -->
+    </div>
+</div>

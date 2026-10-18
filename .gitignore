@@ -1,0 +1,33 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+env/
+build/
+dist/
+*.egg-info/
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.env
+.venv
+venv/
+
+# Data & DB
+data/*.db
+data/*.sqlite
+logs/*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Agent Runtime Tokens & Hashes
+.agents/.deploy_token
+.agents/.baseline_hashes.json

@@ -1,0 +1,21 @@
+<div class="p-6 bg-slate-900 border border-slate-800 rounded-xl text-slate-100">
+    <div class="flex items-center gap-3 mb-6">
+        <svg class="w-5 h-5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <h2 class="text-base font-semibold">API 속도 제한기 (Rate Limiter)</h2>
+    </div>
+
+    <div class="space-y-4">
+        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-slate-400 space-y-2">
+            <div><span class="text-indigo-400">Method:</span> GET /sample-rate-limit/ping</div>
+            <div><span class="text-indigo-400">Algorithm:</span> 슬라이딩 윈도우 (Sliding Window Log)</div>
+            <div><span class="text-indigo-400">Status:</span> 분당 최대 10회 제한 (초과 시 429 Too Many Requests)</div>
+        </div>
+        <button hx-get="/sample-rate-limit/ping" hx-target="#rate-limit-result" class="w-full py-2 px-4 bg-amber-600 hover:bg-amber-500 active:scale-[0.98] transition-all rounded-lg text-sm font-medium text-slate-950">
+            속도 제한 테스트 핑 호출
+        </button>
+        <div id="rate-limit-result" class="mt-4"></div>
+    </div>
+</div>

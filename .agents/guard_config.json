@@ -1,0 +1,181 @@
+{
+  "_comment": "Antigravity 방탄 훅 중앙 관제 설정 파일 (사장님 전용 원터치 조종석)",
+  "switches": {
+    "block_direct_overwrite": true,
+    "require_pin_test_first": true,
+    "require_red_test_first": true,
+    "instant_syntax_check": true,
+    "block_unauthorized_deploy": true,
+    "prevent_test_deletion": true,
+    "verify_git_diff_integrity": true,
+    "enforce_line_limit": true,
+    "verify_hash_immutability": true,
+    "protect_sanctuary_files": true,
+    "enforce_ui_stack_guard": true,
+    "enable_circuit_breaker": true,
+    "block_cross_feature_import": true,
+    "enable_fallback_all_tests": true
+  },
+  "_descriptions": {
+    "block_direct_overwrite": "기존 파일 통째로 덮어쓰기 차단 (write_to_file 방어)",
+    "require_pin_test_first": "비즈니스 코드(src/) 수정 전 tests/ 전용 핀-테스트 선행 필수",
+    "require_red_test_first": "작성된 핀-테스트가 실제로 실패(Red)하는지 확인 후 본 코드 수정 허용",
+    "instant_syntax_check": "파일 저장 즉시 0.01초 만에 괄호/들여쓰기 문법 오타 실시간 감찰",
+    "block_unauthorized_deploy": "사장님 승인 없는 상용 배포(git push / vercel) 물리 차단",
+    "prevent_test_deletion": "기존 정상 테스트 코드 삭제/약화 원천 차단",
+    "verify_git_diff_integrity": "4대 작업 유형별 Git Diff 무결성 및 데이터/성우 유실 방지 감찰",
+    "enforce_line_limit": "src 디렉터리 내 300줄 초과 모듈 감찰 및 refactor 루프 자동 회귀",
+    "verify_hash_immutability": "3대 급소(성역화/리팩토링/디버그 데이터) O(1) SHA-256 해시 무결성 실시간 감찰",
+    "protect_sanctuary_files": "중앙 조종석 성역 파일(.agents/scripts, guard_config.json) 수정 차단",
+    "enforce_ui_stack_guard": "4대 웹스택(FastAPI/Jinja2/HTMX/Tailwind) 역할 침범 및 JS/HTML하드코딩 실시간 감찰",
+    "enable_circuit_breaker": "동일 테스트 연속 실패 시 무한루프 차단 및 자동 git restore 안전 롤백",
+    "block_cross_feature_import": "피처(src/features/) 간 직접 import 원천 차단 및 shared/ 승격 강제",
+    "enable_fallback_all_tests": "매칭 실패 시 프로젝트 전체 테스트(pytest -q) 폴백 허용 여부 (false 시 CI 위임)"
+  },
+  "blocked_commands": [
+    "git push",
+    "vercel",
+    "vercel --prod",
+    "npm publish",
+    "supabase db reset"
+  ],
+  "paths": {
+    "src_dir": "src",
+    "test_dir": "tests"
+  },
+  "bypass_extensions": [
+    ".md",
+    ".canvas",
+    ".txt",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".svg",
+    ".ico",
+    ".log",
+    ".json"
+  ],
+  "diff_guard_policy": {
+    "bypass_dirs": [
+      ".agents",
+      "docs",
+      "templates"
+    ],
+    "max_consecutive_deletions_in_feat": 15,
+    "max_consecutive_deletions_in_change": 70,
+    "max_consecutive_deletions_in_fix": 70,
+    "protected_key_patterns": [
+      "id",
+      "key",
+      "name",
+      "code",
+      "role",
+      "permission",
+      "voice"
+    ],
+    "banned_comment_patterns": [
+      "기존 코드 동일",
+      "기존 로직 동일",
+      "동일함",
+      "생략",
+      "unchanged",
+      "remain unchanged",
+      "rest of code",
+      "TODO",
+      "구현 예정",
+      "implement later",
+      "# ..."
+    ]
+  },
+  "architecture_policy": {
+    "max_line_limit": 300,
+    "enforce_in_pretool": false,
+    "target_dirs": [
+      "src"
+    ]
+  },
+  "hash_guard_policy": {
+    "sanctuary_paths": [
+      ".agents/guard_config.json",
+      ".agents/hooks.json",
+      ".agents/scripts"
+    ],
+    "refactor_immutable_dirs": [
+      "tests",
+      "data/db",
+      "src/shared/shell/db_schema.py"
+    ],
+    "fix_immutable_dirs": [
+      "data/db",
+      "src/shared/shell/db_schema.py"
+    ]
+  },
+  "circuit_breaker_policy": {
+    "max_retries": 3
+  },
+  "test_mutation_policy": {
+    "_comment": "4대 작업 모드별 테스트 코드 수정/삭제 통제 정책 (원터치 조종석)",
+    "default_rule": "strict_zero_mutation",
+    "mode_rules": {
+      "refactor": "strict_zero_mutation",
+      "fix": "strict_zero_mutation",
+      "feat": "strict_zero_mutation",
+      "change": "scoped_ast_guard"
+    },
+    "scoped_ast_policy": {
+      "max_assertion_collapse_ratio": 0.3,
+      "block_mock_pass": true
+    }
+  },
+  "ui_stack_policy": {
+    "_comment": "4대 웹스택(FastAPI/Jinja2/HTMX/Tailwind) 상호 침범 방탄 정책",
+    "banned_frontend_patterns": [
+      "fetch(",
+      ".innerHTML",
+      "axios.",
+      ".insertAdjacentHTML"
+    ],
+    "banned_backend_patterns": [
+      "<table",
+      "<tr",
+      "<td",
+      "<div",
+      "<span",
+      "<form"
+    ],
+    "banned_extensions": [
+      ".js",
+      ".jsx",
+      ".ts",
+      ".tsx"
+    ],
+    "target_dirs": [
+      "src"
+    ]
+  },
+  "feature_boundary_policy": {
+    "features_dir": "src/features",
+    "shared_dir": "src/shared",
+    "bypass_features": []
+  },
+  "tia_policy": {
+    "_comment": "3단계 계층형 테스트 아키텍처(TIA) 2계층 선별 및 폴백 관제 정책",
+    "_available_modes": {
+      "partner_first": "1:1 짝꿍 핀테스트 파일 우선 실행 (0.1초 컷, 소음 최소화, 기본 권장)",
+      "domain_first": "변경된 도메인 폴더(tests/<도메인>/) 범위 묶음 실행 (나비효과 방어)",
+      "full_always": "파일 무관 매 턴마다 프로젝트 전체 테스트(pytest -q) 전수 실행 (철벽 검증)"
+    },
+    "mode": "partner_first",
+    "enable_fallback_all_tests": true,
+    "fallback_patterns": [
+      "shared/",
+      "/shared/",
+      "core/constants.py",
+      "constants.py",
+      "types/",
+      "/types/",
+      "guard_config.json",
+      "hooks.json"
+    ]
+  }
+}

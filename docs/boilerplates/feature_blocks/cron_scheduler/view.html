@@ -1,0 +1,20 @@
+<div class="p-6 bg-slate-900 border border-slate-800 rounded-xl text-slate-100">
+    <div class="flex items-center gap-3 mb-6">
+        <svg class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        <h2 class="text-base font-semibold">경량 크론 스케줄러 & 락 보호</h2>
+    </div>
+
+    <div class="space-y-4">
+        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-slate-400 space-y-2">
+            <div><span class="text-indigo-400">Endpoint:</span> POST /sample-cron/trigger</div>
+            <div><span class="text-indigo-400">Lock:</span> 이전 작업 미완료 시 중복 실행 락(Lock) 차단</div>
+            <div><span class="text-indigo-400">Interval:</span> 지정 주기 경과 판정 후 실행</div>
+        </div>
+        <button hx-post="/sample-cron/trigger" hx-target="#cron-result" class="w-full py-2 px-4 bg-sky-600 hover:bg-sky-500 active:scale-[0.98] transition-all rounded-lg text-sm font-medium">
+            스케줄러 작업 수동 격발
+        </button>
+        <div id="cron-result" class="mt-4"></div>
+    </div>
+</div>
