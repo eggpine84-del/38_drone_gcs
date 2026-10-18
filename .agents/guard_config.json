@@ -103,11 +103,11 @@
     "refactor_immutable_dirs": [
       "tests",
       "data/db",
-      "src/shared/shell/db_schema.py"
+      "src/engine/shell/db_schema.py"
     ],
     "fix_immutable_dirs": [
       "data/db",
-      "src/shared/shell/db_schema.py"
+      "src/engine/shell/db_schema.py"
     ]
   },
   "circuit_breaker_policy": {
@@ -180,6 +180,8 @@
     "mode": "partner_first",
     "enable_fallback_all_tests": true,
     "fallback_patterns": [
+      "engine/",
+      "/engine/",
       "shared/",
       "/shared/",
       "core/constants.py",
