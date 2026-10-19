@@ -42,16 +42,17 @@ class MAVLinkMultiReceiver:
                         auto_detect_sysid=auto_detect_sysid,
                     )
                 )
-        elif connection_strings:
-            for conn_str in connection_strings:
-                self._receivers.append(
-                    MAVLinkReceiver(
-                        drone_id=default_drone_id,
-                        service=service,
-                        connection_string=conn_str,
-                        auto_detect_sysid=auto_detect_sysid,
-                    )
+            return
+
+        for conn_str in (connection_strings or []):
+            self._receivers.append(
+                MAVLinkReceiver(
+                    drone_id=default_drone_id,
+                    service=service,
+                    connection_string=conn_str,
+                    auto_detect_sysid=auto_detect_sysid,
                 )
+            )
 
     @property
     def connection(self) -> Any:

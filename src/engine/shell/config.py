@@ -112,14 +112,16 @@ _CACHED_CONFIG: Optional[AppConfig] = None
 def get_config() -> AppConfig:
     """시스템 전역 단일 진실 원장 AppConfig 싱글톤 반환."""
     global _CACHED_CONFIG
-    if _CACHED_CONFIG is None:
-        merged_env: dict = {}
-        # 1. .env 파일 로드 (있을 경우)
-        if os.path.exists(".env"):
-            merged_env.update(dotenv_values(".env"))
-        # 2. OS 환경변수 덮어쓰기
-        merged_env.update(os.environ)
-        _CACHED_CONFIG = load_config_from_dict(merged_env)
+    if _CACHED_CONFIG is not None:
+        return _CACHED_CONFIG
+
+    merged_env: dict = {}
+    # 1. .env 파일 로드 (있을 경우)
+    if os.path.exists(".env"):
+        merged_env.update(dotenv_values(".env"))
+    # 2. OS 환경변수 덮어쓰기
+    merged_env.update(os.environ)
+    _CACHED_CONFIG = load_config_from_dict(merged_env)
     return _CACHED_CONFIG
 
 

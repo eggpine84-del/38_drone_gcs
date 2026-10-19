@@ -156,6 +156,88 @@ class MAVLinkReceiver:
                 pass
             logger.warning("MAVLink 통신 단절 감지 - 재연결 대기 (기체: %s)", self._drone_id)
 
+    def _try_auto_reconnect(self) -> bool:
+        """미연결 상태 시 재연결 쿨다운 검사 및 조용한 자동 재연결 시도 (Early Return Flat Guard)."""
+        if self.is_connected:
+            return True
+        now = time.time()
+        if self._connection_string and (now - self._last_reconnect_attempt >= self._reconnect_interval):
+            self._last_reconnect_attempt = now
+            self._init_connection(self._connection_string)
+        return self.is_connected
+
+    def _handle_heartbeat(self, msg_dict: dict, target_drone_id: str) -> int:
+        """HEARTBEAT 메시지 처리 및 Keep-Alive 텔레메트리 갱신."""
+        self._last_heartbeat = msg_dict
+        self._drone_heartbeats[target_drone_id] = msg_dict
+        last_gps = self._drone_last_gps.get(target_drone_id)
+        now_ts = time.time()
+        if not (last_gps and (now_ts - self._drone_last_ingest_time.get(target_drone_id, 0.0) >= 1.0)):
+            return 0
+        bat = self._drone_batteries.get(target_drone_id, self._last_battery)
+        now_iso = datetime.now(timezone.utc).isoformat()
+        payload = convert_mavlink_to_payload(
+            drone_id=target_drone_id,
+            gps_msg=last_gps,
+            heartbeat_msg=msg_dict,
+            battery_msg=bat,
+            timestamp=now_iso,
+        )
+        if payload and self._service.process_telemetry(payload).success:
+            self._drone_last_ingest_time[target_drone_id] = now_ts
+            return 1
+        return 0
+
+    def _handle_battery(self, msg_dict: dict, target_drone_id: str) -> int:
+        """BATTERY_STATUS 및 SYS_STATUS 메시지 캐싱."""
+        self._last_battery = msg_dict
+        self._drone_batteries[target_drone_id] = msg_dict
+        return 0
+
+    def _handle_global_position(self, msg_dict: dict, target_drone_id: str) -> int:
+        """GLOBAL_POSITION_INT 메시지 수신 시 텔레메트리 적재."""
+        self._drone_last_gps[target_drone_id] = msg_dict
+        hb = self._drone_heartbeats.get(target_drone_id, self._last_heartbeat)
+        if not hb:
+            return 0
+        bat = self._drone_batteries.get(target_drone_id, self._last_battery)
+        now_iso = datetime.now(timezone.utc).isoformat()
+        payload = convert_mavlink_to_payload(
+            drone_id=target_drone_id,
+            gps_msg=msg_dict,
+            heartbeat_msg=hb,
+            battery_msg=bat,
+            timestamp=now_iso,
+        )
+        if payload and self._service.process_telemetry(payload).success:
+            self._drone_last_ingest_time[target_drone_id] = time.time()
+            logger.debug("MAVLink 텔레메트리 적재 성공: %s", target_drone_id)
+            return 1
+        return 0
+
+    def _handle_statustext(self, msg_dict: dict, target_drone_id: str) -> int:
+        """STATUSTEXT FCU 상태 알림 로깅."""
+        raw_text = msg_dict.get("text", "")
+        if isinstance(raw_text, bytes):
+            raw_text = raw_text.decode("utf-8", errors="ignore")
+        logger.warning("MAVLink FCU 상태 알림 [%s]: %s", target_drone_id, str(raw_text).strip())
+        return 0
+
+    def _handle_command_ack(self, msg_dict: dict, target_drone_id: str) -> int:
+        """COMMAND_ACK 명령 응답 로깅."""
+        cmd_id, res_id = msg_dict.get("command", 0), msg_dict.get("result", 0)
+        logger.info("MAVLink 명령 응답 [%s]: command=%s, result=%s", target_drone_id, cmd_id, res_id)
+        return 0
+
+    _MESSAGE_DISPATCH_TABLE = {
+        "HEARTBEAT": _handle_heartbeat,
+        "BATTERY_STATUS": _handle_battery,
+        "SYS_STATUS": _handle_battery,
+        "GLOBAL_POSITION_INT": _handle_global_position,
+        "STATUSTEXT": _handle_statustext,
+        "COMMAND_ACK": _handle_command_ack,
+    }
+
     def poll_once(self) -> int:
         """논블로킹 방식으로 가용한 MAVLink 메시지를 1회 순회 소비합니다.
 
@@ -163,13 +245,8 @@ class MAVLinkReceiver:
             int: 처리된 텔레메트리 적재 횟수.
         """
         # 1. 미연결 상태 시 재연결 쿨다운 검사 및 조용한 자동 재연결 시도
-        if not self.is_connected:
-            now = time.time()
-            if self._connection_string and (now - self._last_reconnect_attempt >= self._reconnect_interval):
-                self._last_reconnect_attempt = now
-                self._init_connection(self._connection_string)
-            if not self.is_connected:
-                return 0
+        if not self._try_auto_reconnect():
+            return 0
 
         # 2. FCU 텔레메트리 침묵 방어: 1초 주기 GCS 하트비트 및 데이터 스트림 능동 요청
         self._send_gcs_heartbeat_and_stream_request()
@@ -196,57 +273,9 @@ class MAVLinkReceiver:
                 if not target_drone_id:
                     continue
 
-                if msg_type == "HEARTBEAT":
-                    self._last_heartbeat = msg_dict
-                    self._drone_heartbeats[target_drone_id] = msg_dict
-                    # GPS 패킷 주기 지연 시에도 기체 카드가 타임아웃되지 않도록 마지막 위치 기반 Keep-Alive 갱신
-                    last_gps = self._drone_last_gps.get(target_drone_id)
-                    now_ts = time.time()
-                    if last_gps and (now_ts - self._drone_last_ingest_time.get(target_drone_id, 0.0) >= 1.0):
-                        bat = self._drone_batteries.get(target_drone_id, self._last_battery)
-                        now_iso = datetime.now(timezone.utc).isoformat()
-                        payload = convert_mavlink_to_payload(
-                            drone_id=target_drone_id,
-                            gps_msg=last_gps,
-                            heartbeat_msg=msg_dict,
-                            battery_msg=bat,
-                            timestamp=now_iso,
-                        )
-                        if payload:
-                            if self._service.process_telemetry(payload).success:
-                                processed_count += 1
-                                self._drone_last_ingest_time[target_drone_id] = now_ts
-                elif msg_type in ("BATTERY_STATUS", "SYS_STATUS"):
-                    self._last_battery = msg_dict
-                    self._drone_batteries[target_drone_id] = msg_dict
-                elif msg_type == "GLOBAL_POSITION_INT":
-                    self._drone_last_gps[target_drone_id] = msg_dict
-                    hb = self._drone_heartbeats.get(target_drone_id, self._last_heartbeat)
-                    bat = self._drone_batteries.get(target_drone_id, self._last_battery)
-                    if hb:
-                        now_iso = datetime.now(timezone.utc).isoformat()
-                        payload = convert_mavlink_to_payload(
-                            drone_id=target_drone_id,
-                            gps_msg=msg_dict,
-                            heartbeat_msg=hb,
-                            battery_msg=bat,
-                            timestamp=now_iso,
-                        )
-                        if payload:
-                            result = self._service.process_telemetry(payload)
-                            if result.success:
-                                processed_count += 1
-                                self._drone_last_ingest_time[target_drone_id] = time.time()
-                                logger.debug("MAVLink 텔레메트리 적재 성공: %s", target_drone_id)
-                elif msg_type == "STATUSTEXT":
-                    raw_text = msg_dict.get("text", "")
-                    if isinstance(raw_text, bytes):
-                        raw_text = raw_text.decode("utf-8", errors="ignore")
-                    logger.warning("MAVLink FCU 상태 알림 [%s]: %s", target_drone_id, str(raw_text).strip())
-                elif msg_type == "COMMAND_ACK":
-                    cmd_id = msg_dict.get("command", 0)
-                    res_id = msg_dict.get("result", 0)
-                    logger.info("MAVLink 명령 응답 [%s]: command=%s, result=%s", target_drone_id, cmd_id, res_id)
+                handler = self._MESSAGE_DISPATCH_TABLE.get(msg_type)
+                if handler:
+                    processed_count += handler(self, msg_dict, target_drone_id)
             except (ConnectionError, BrokenPipeError, ConnectionResetError, OSError) as sock_err:
                 logger.warning("MAVLink 소켓 에러 감지: %s", str(sock_err))
                 self._handle_disconnect()

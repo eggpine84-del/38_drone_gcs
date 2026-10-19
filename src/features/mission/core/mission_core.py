@@ -27,6 +27,66 @@ class ProgressResult:
 VALID_COMMANDS: Final[set[str]] = {"ARM", "TAKEOFF", "LAND", "RTH"}
 
 
+def _eval_arm(status: str, battery: int) -> CommandResult:
+    if status != "IDLE":
+        return CommandResult(
+            is_allowed=False,
+            next_status=None,
+            reason=f"대기(IDLE) 상태에서만 시동(ARM)을 걸 수 있습니다. 현재 상태: {status}"
+        )
+    if battery <= 15:
+        return CommandResult(
+            is_allowed=False,
+            next_status=None,
+            reason=f"배터리 15% 이하({battery}%)에서는 안전을 위해 시동을 켤 수 없습니다."
+        )
+    return CommandResult(is_allowed=True, next_status="ARMED", reason="시동(ARMED) 승인 완료")
+
+
+def _eval_takeoff(status: str, battery: int) -> CommandResult:
+    if status != "ARMED":
+        return CommandResult(
+            is_allowed=False,
+            next_status=None,
+            reason=f"시동(ARMED) 상태에서만 이륙(TAKEOFF) 명령을 하달할 수 있습니다. 현재 상태: {status}"
+        )
+    if battery <= 15:
+        return CommandResult(
+            is_allowed=False,
+            next_status=None,
+            reason=f"배터리 15% 이하({battery}%)에서는 이륙 명령이 거부됩니다."
+        )
+    return CommandResult(is_allowed=True, next_status="TAKEOFF", reason="이륙(TAKEOFF) 승인 완료")
+
+
+def _eval_land(status: str, battery: int) -> CommandResult:
+    if status not in ("IN_FLIGHT", "TAKEOFF"):
+        return CommandResult(
+            is_allowed=False,
+            next_status=None,
+            reason=f"비행(IN_FLIGHT/TAKEOFF) 상태에서만 착륙(LAND) 명령이 유효합니다. 현재 상태: {status}"
+        )
+    return CommandResult(is_allowed=True, next_status="LANDING", reason="착륙(LANDING) 절차 승인")
+
+
+def _eval_rth(status: str, battery: int) -> CommandResult:
+    if status == "TERMINATED":
+        return CommandResult(
+            is_allowed=False,
+            next_status=None,
+            reason="이미 종료(TERMINATED)된 기체에는 귀환 명령을 하달할 수 없습니다."
+        )
+    return CommandResult(is_allowed=True, next_status="EMERGENCY_RTH", reason="비상 귀환(RTH) 발령")
+
+
+_COMMAND_EVALUATORS = {
+    "ARM": _eval_arm,
+    "TAKEOFF": _eval_takeoff,
+    "LAND": _eval_land,
+    "RTH": _eval_rth,
+}
+
+
 def evaluate_command(
     current_status: str,
     command: str,
@@ -43,57 +103,9 @@ def evaluate_command(
             reason=f"정의되지 않은 비인가 명령입니다: '{command}'"
         )
 
-    # 1. 시동 (ARM)
-    if cmd == "ARM":
-        if status != "IDLE":
-            return CommandResult(
-                is_allowed=False,
-                next_status=None,
-                reason=f"대기(IDLE) 상태에서만 시동(ARM)을 걸 수 있습니다. 현재 상태: {status}"
-            )
-        if battery <= 15:
-            return CommandResult(
-                is_allowed=False,
-                next_status=None,
-                reason=f"배터리 15% 이하({battery}%)에서는 안전을 위해 시동을 켤 수 없습니다."
-            )
-        return CommandResult(is_allowed=True, next_status="ARMED", reason="시동(ARMED) 승인 완료")
-
-    # 2. 이륙 (TAKEOFF)
-    if cmd == "TAKEOFF":
-        if status != "ARMED":
-            return CommandResult(
-                is_allowed=False,
-                next_status=None,
-                reason=f"시동(ARMED) 상태에서만 이륙(TAKEOFF) 명령을 하달할 수 있습니다. 현재 상태: {status}"
-            )
-        if battery <= 15:
-            return CommandResult(
-                is_allowed=False,
-                next_status=None,
-                reason=f"배터리 15% 이하({battery}%)에서는 이륙 명령이 거부됩니다."
-            )
-        return CommandResult(is_allowed=True, next_status="TAKEOFF", reason="이륙(TAKEOFF) 승인 완료")
-
-    # 3. 착륙 (LAND)
-    if cmd == "LAND":
-        if status not in ("IN_FLIGHT", "TAKEOFF"):
-            return CommandResult(
-                is_allowed=False,
-                next_status=None,
-                reason=f"비행(IN_FLIGHT/TAKEOFF) 상태에서만 착륙(LAND) 명령이 유효합니다. 현재 상태: {status}"
-            )
-        return CommandResult(is_allowed=True, next_status="LANDING", reason="착륙(LANDING) 절차 승인")
-
-    # 4. 비상 귀환 (RTH)
-    if cmd == "RTH":
-        if status == "TERMINATED":
-            return CommandResult(
-                is_allowed=False,
-                next_status=None,
-                reason="이미 종료(TERMINATED)된 기체에는 귀환 명령을 하달할 수 없습니다."
-            )
-        return CommandResult(is_allowed=True, next_status="EMERGENCY_RTH", reason="비상 귀환(RTH) 발령")
+    evaluator = _COMMAND_EVALUATORS.get(cmd)
+    if evaluator:
+        return evaluator(status, battery)
 
     return CommandResult(is_allowed=False, next_status=None, reason="명령 처리 불가")
 

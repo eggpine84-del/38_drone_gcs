@@ -174,14 +174,15 @@ def resolve_active_drone_id(
     Returns:
         str: 선출된 활성 기체 식별자.
     """
-    # 1. Guard Clause: 가용 기체 리스트가 유효하고 원소가 존재하는 경우 최신 기체 선출
-    if available_drones and isinstance(available_drones, (list, tuple)):
-        valid_ids = [d.strip() for d in available_drones if d and str(d).strip()]
-        if valid_ids:
-            return valid_ids[0]
+    # 1. Guard Clause: 가용 기체 리스트가 없거나 유효하지 않으면 폴백 조기 반환
+    if not (available_drones and isinstance(available_drones, (list, tuple))):
+        return default_fallback.strip() if default_fallback and default_fallback.strip() else "DRONE-01"
+
+    valid_ids = [d.strip() for d in available_drones if d and str(d).strip()]
+    if valid_ids:
+        return valid_ids[0]
 
     # 2. 폴백 반환 및 빈값 가드
-    fallback = default_fallback.strip() if default_fallback and default_fallback.strip() else "DRONE-01"
-    return fallback
+    return default_fallback.strip() if default_fallback and default_fallback.strip() else "DRONE-01"
 
 

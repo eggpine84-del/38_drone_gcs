@@ -28,6 +28,20 @@ def is_valid_wgs84(latitude: float, longitude: float) -> bool:
         return False
 
 
+def _is_ray_intersecting_edge(
+    lat: float, lon: float, p1_lat: float, p1_lon: float, p2_lat: float, p2_lon: float
+) -> bool:
+    """단일 다각형 변과 수평 레이의 교차 여부를 판정합니다 (Early Return Flat Guard)."""
+    if not (min(p1_lat, p2_lat) < lat <= max(p1_lat, p2_lat)):
+        return False
+    if lon > max(p1_lon, p2_lon):
+        return False
+    if p1_lat == p2_lat:
+        return True
+    xinters = (lat - p1_lat) * (p2_lon - p1_lon) / (p2_lat - p1_lat) + p1_lon
+    return p1_lon == p2_lon or lon <= xinters
+
+
 def is_point_in_polygon(
     lat: float,
     lon: float,
@@ -49,15 +63,8 @@ def is_point_in_polygon(
         p2 = polygon[i % n]
         p2_lat, p2_lon = float(p2[0]), float(p2[1])
 
-        # 분모 0 나눗셈 및 경계선 부동소수점 오차 방어
-        if min(p1_lat, p2_lat) < lat <= max(p1_lat, p2_lat):
-            if lon <= max(p1_lon, p2_lon):
-                if p1_lat != p2_lat:
-                    xinters = (lat - p1_lat) * (p2_lon - p1_lon) / (p2_lat - p1_lat) + p1_lon
-                    if p1_lon == p2_lon or lon <= xinters:
-                        inside = not inside
-                else:
-                    inside = not inside
+        if _is_ray_intersecting_edge(lat, lon, p1_lat, p1_lon, p2_lat, p2_lon):
+            inside = not inside
 
         p1_lat, p1_lon = p2_lat, p2_lon
 
@@ -109,16 +116,15 @@ def evaluate_geofence(
             recommended_status="EMERGENCY_RTH",
         )
 
-    # 2. 인가 다각형 구역 이탈 판정 (설정되어 있을 때만)
-    if allowed_polygon and len(allowed_polygon) >= 3:
-        if not is_point_in_polygon(latitude, longitude, allowed_polygon):
-            return GeofenceResult(
-                drone_id=drone_id,
-                is_breached=True,
-                breach_type="OUT_OF_BOUNDS",
-                reason="인가된 비행 허용 구역(Allowed Polygon)을 이탈했습니다.",
-                recommended_status="EMERGENCY_RTH",
-            )
+    # 2. 인가 다각형 구역 이탈 판정 (단일 가드절)
+    if allowed_polygon and len(allowed_polygon) >= 3 and not is_point_in_polygon(latitude, longitude, allowed_polygon):
+        return GeofenceResult(
+            drone_id=drone_id,
+            is_breached=True,
+            breach_type="OUT_OF_BOUNDS",
+            reason="인가된 비행 허용 구역(Allowed Polygon)을 이탈했습니다.",
+            recommended_status="EMERGENCY_RTH",
+        )
 
     # 3. 비행 금지 구역(NFZ) 침범 판정
     if nfz_list:

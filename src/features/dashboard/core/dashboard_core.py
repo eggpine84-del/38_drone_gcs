@@ -68,6 +68,21 @@ def _clamp(val: float, min_val: float, max_val: float) -> float:
     return max(min_val, min(val, max_val))
 
 
+BATTERY_COLOR_THRESHOLDS: Final[tuple[tuple[int, str], ...]] = (
+    (15, "text-red-400 stroke-red-500"),
+    (30, "text-amber-400 stroke-amber-500"),
+    (70, "text-cyan-400 stroke-cyan-500"),
+)
+
+
+def resolve_battery_color_class(battery_int: int) -> str:
+    """배터리 잔량 구간별 스타일 클래스를 반환합니다 (Table-Driven)."""
+    for limit, color_class in BATTERY_COLOR_THRESHOLDS:
+        if battery_int <= limit:
+            return color_class
+    return "text-emerald-400 stroke-emerald-500"
+
+
 def format_drone_card_data(raw: dict[str, Any]) -> dict[str, Any]:
     """단일 드론 텔레메트리 딕셔너리를 HUD 카드 렌더링 규격으로 살균 가공 (Pure Function)."""
     drone_id = str(raw.get("drone_id", "UNKNOWN")).strip()
@@ -98,15 +113,8 @@ def format_drone_card_data(raw: dict[str, Any]) -> dict[str, Any]:
     gauge_circumference = 113.1
     dash_offset = round(gauge_circumference * (1.0 - (battery_int / 100.0)), 1)
 
-    # 배터리 위험도 색상
-    if battery_int <= 15:
-        battery_color_class = "text-red-400 stroke-red-500"
-    elif battery_int <= 30:
-        battery_color_class = "text-amber-400 stroke-amber-500"
-    elif battery_int <= 70:
-        battery_color_class = "text-cyan-400 stroke-cyan-500"
-    else:
-        battery_color_class = "text-emerald-400 stroke-emerald-500"
+    # 배터리 위험도 색상 (Table-Driven)
+    battery_color_class = resolve_battery_color_class(battery_int)
 
     return {
         "drone_id": drone_id,
