@@ -78,6 +78,7 @@ class MAVLinkReceiver:
     def _handle_disconnect(self) -> None:
         """통신 단절 시 좀비 소켓을 닫고 상태를 재설정합니다."""
         self._is_connected = False
+        self._last_reconnect_attempt = time.time()
         if self._connection and hasattr(self._connection, "close"):
             try:
                 self._connection.close()
