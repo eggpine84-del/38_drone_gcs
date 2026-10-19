@@ -43,7 +43,7 @@ class TransitionResult:
 # Table-Driven Dispatch: 상태별 허용된 다음 상태 매핑 테이블 (공리 2: 단방향 상태 전이)
 ALLOWED_TRANSITIONS: Final[dict[DroneStatus, FrozenSet[DroneStatus]]] = {
     DroneStatus.IDLE: frozenset({DroneStatus.ARMED}),
-    DroneStatus.ARMED: frozenset({DroneStatus.TAKEOFF, DroneStatus.IDLE}),
+    DroneStatus.ARMED: frozenset({DroneStatus.TAKEOFF, DroneStatus.IN_FLIGHT, DroneStatus.IDLE}),
     DroneStatus.TAKEOFF: frozenset({DroneStatus.IN_FLIGHT, DroneStatus.LANDING, DroneStatus.EMERGENCY_RTH}),
     DroneStatus.IN_FLIGHT: frozenset({DroneStatus.LANDING, DroneStatus.EMERGENCY_RTH}),
     DroneStatus.LANDING: frozenset({DroneStatus.IDLE, DroneStatus.TERMINATED, DroneStatus.EMERGENCY_RTH}),
