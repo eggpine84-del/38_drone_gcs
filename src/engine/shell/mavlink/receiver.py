@@ -52,6 +52,8 @@ class MAVLinkReceiver:
         # 기체별 최신 상태 격리 캐시 (기체간 상태 섞임 방지)
         self._drone_heartbeats: Dict[str, Dict[str, Any]] = {}
         self._drone_batteries: Dict[str, Dict[str, Any]] = {}
+        self._drone_last_gps: Dict[str, Dict[str, Any]] = {}
+        self._drone_last_ingest_time: Dict[str, float] = {}
 
         # 하위 호환 단일 캐시
         self._last_heartbeat: Optional[Dict[str, Any]] = None
@@ -115,18 +117,20 @@ class MAVLinkReceiver:
             except Exception as exc:
                 logger.debug("GCS 하트비트 송신 예외 무시: %s", str(exc))
 
-        # 2. 데이터 스트림 요청 송출 (MAV_DATA_STREAM_ALL=0, rate=4Hz, start=1)
+        # 2. 데이터 스트림 요청 송출 (ArduPilot 침묵 방어를 위한 5대 스트림 전수 개방)
         if hasattr(mav, "request_data_stream_send"):
             try:
                 target_sys = getattr(self._connection, "target_system", 1) or 1
                 target_comp = getattr(self._connection, "target_component", 1) or 1
-                mav.request_data_stream_send(
-                    target_sys,
-                    target_comp,
-                    0,  # MAV_DATA_STREAM_ALL
-                    4,  # 4Hz
-                    1,  # start
-                )
+                # 0: ALL, 6: POSITION(GLOBAL_POSITION_INT), 2: EXTENDED_STATUS, 10: EXTRA1, 11: EXTRA2
+                for s_id in (0, 6, 2, 10, 11):
+                    mav.request_data_stream_send(
+                        target_sys,
+                        target_comp,
+                        s_id,
+                        4,  # 4Hz
+                        1,  # start
+                    )
             except Exception as exc:
                 logger.debug("데이터 스트림 요청 송신 예외 무시: %s", str(exc))
 
@@ -185,10 +189,28 @@ class MAVLinkReceiver:
                 if msg_type == "HEARTBEAT":
                     self._last_heartbeat = msg_dict
                     self._drone_heartbeats[target_drone_id] = msg_dict
+                    # GPS 패킷 주기 지연 시에도 기체 카드가 타임아웃되지 않도록 마지막 위치 기반 Keep-Alive 갱신
+                    last_gps = self._drone_last_gps.get(target_drone_id)
+                    now_ts = time.time()
+                    if last_gps and (now_ts - self._drone_last_ingest_time.get(target_drone_id, 0.0) >= 1.0):
+                        bat = self._drone_batteries.get(target_drone_id, self._last_battery)
+                        now_iso = datetime.now(timezone.utc).isoformat()
+                        payload = convert_mavlink_to_payload(
+                            drone_id=target_drone_id,
+                            gps_msg=last_gps,
+                            heartbeat_msg=msg_dict,
+                            battery_msg=bat,
+                            timestamp=now_iso,
+                        )
+                        if payload:
+                            if self._service.process_telemetry(payload).success:
+                                processed_count += 1
+                                self._drone_last_ingest_time[target_drone_id] = now_ts
                 elif msg_type in ("BATTERY_STATUS", "SYS_STATUS"):
                     self._last_battery = msg_dict
                     self._drone_batteries[target_drone_id] = msg_dict
                 elif msg_type == "GLOBAL_POSITION_INT":
+                    self._drone_last_gps[target_drone_id] = msg_dict
                     hb = self._drone_heartbeats.get(target_drone_id, self._last_heartbeat)
                     bat = self._drone_batteries.get(target_drone_id, self._last_battery)
                     if hb:
@@ -204,6 +226,7 @@ class MAVLinkReceiver:
                             result = self._service.process_telemetry(payload)
                             if result.success:
                                 processed_count += 1
+                                self._drone_last_ingest_time[target_drone_id] = time.time()
                                 logger.debug("MAVLink 텔레메트리 적재 성공: %s", target_drone_id)
                 elif msg_type == "STATUSTEXT":
                     raw_text = msg_dict.get("text", "")
