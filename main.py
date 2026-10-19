@@ -77,8 +77,63 @@ from src.features.mission.shell.mission_routes import router as mission_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from src.engine.shell.db_schema import init_db
+    from src.engine.shell.config import get_config
+    from src.engine.shell.drone_gcs_service import DroneGCSService
+    from src.engine.shell.drone_repository import SqliteDroneLedgerRepository
+    from src.engine.shell.mavlink_receiver import MAVLinkReceiver
+
     init_db()
-    yield
+
+    cfg = get_config()
+    worker_task = None
+    receiver = None
+    stop_event = asyncio.Event()
+
+    if cfg.mavlink_enabled:
+        from src.engine.core.mavlink_parser_core import parse_connection_strings_core
+        from src.engine.shell.mavlink_receiver import MAVLinkMultiReceiver
+
+        service = DroneGCSService(repository=SqliteDroneLedgerRepository())
+        conns = parse_connection_strings_core(cfg.mavlink_connection_string)
+        if len(conns) > 1:
+            receiver = MAVLinkMultiReceiver(
+                service=service,
+                connection_strings=conns,
+                default_drone_id=cfg.default_drone_id,
+                auto_detect_sysid=True,
+            )
+        else:
+            receiver = MAVLinkReceiver(
+                drone_id=cfg.default_drone_id,
+                service=service,
+                connection_string=conns[0] if conns else cfg.mavlink_connection_string,
+                auto_detect_sysid=True,
+            )
+
+        async def _mavlink_worker():
+            while not stop_event.is_set():
+                try:
+                    await asyncio.to_thread(receiver.poll_once)
+                    await asyncio.sleep(0.02)
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    await asyncio.sleep(0.1)
+
+        worker_task = asyncio.create_task(_mavlink_worker())
+
+    try:
+        yield
+    finally:
+        if worker_task:
+            stop_event.set()
+            worker_task.cancel()
+            try:
+                await worker_task
+            except asyncio.CancelledError:
+                pass
+        if receiver:
+            receiver.close()
 
 
 app = FastAPI(title="Drone-GCS Control Center", lifespan=lifespan)

@@ -115,3 +115,48 @@ def convert_mavlink_to_payload(
         target_status=target_status,
         timestamp=timestamp,
     )
+
+
+def resolve_drone_id_from_sysid(src_system: int, default_prefix: str = "DRONE") -> str:
+    """MAVLink 패킷 발신자 System ID(SysID)로부터 정규화된 기체 식별자를 결정론적으로 반환합니다.
+
+    Args:
+        src_system: MAVLink 발신 기체 번호 (1 ~ 255).
+        default_prefix: 기체 ID 접두사 (기본값: 'DRONE').
+
+    Returns:
+        str: 2자리 제로 패딩된 기체 식별자 (예: 'DRONE-01'). 비정상 수치 시 'DRONE-UNKNOWN'.
+    """
+    prefix = default_prefix.strip() if default_prefix and default_prefix.strip() else "DRONE"
+    if not isinstance(src_system, int) or src_system < 1 or src_system > 255:
+        return f"{prefix}-UNKNOWN"
+    return f"{prefix}-{src_system:02d}"
+
+
+def parse_connection_strings_core(
+    raw_conns: Optional[str], default_conn: str = "udpin:0.0.0.0:14550"
+) -> list[str]:
+    """쉼표/세미콜론으로 구분된 다중 연결 문자열을 파싱, 살균 및 중복 제거합니다.
+
+    Args:
+        raw_conns: 환경변수 또는 설정에서 주입된 원시 문자열.
+        default_conn: 입력이 비어있을 때 적용할 안전 폴백 기본값.
+
+    Returns:
+        list[str]: 살균된 고유 연결 문자열 리스트.
+    """
+    if not raw_conns or not str(raw_conns).strip():
+        return [default_conn.strip()]
+
+    tokens = [t.strip() for t in str(raw_conns).replace(";", ",").split(",") if t.strip()]
+
+    # 중복 제거 (순서 보존)
+    seen = set()
+    result = []
+    for token in tokens:
+        if token not in seen:
+            seen.add(token)
+            result.append(token)
+
+    return result if result else [default_conn.strip()]
+

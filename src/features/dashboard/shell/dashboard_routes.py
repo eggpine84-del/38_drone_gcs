@@ -4,11 +4,13 @@
 import os
 from typing import Any
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from src.features.dashboard.core.dashboard_core import compute_dashboard_summary
 from src.features.dashboard.shell.dashboard_repository import get_all_active_drones_latest
+from src.features.dashboard.shell.command_dto import DroneCommandIn
+from src.features.dashboard.shell.flight_command_service import get_flight_command_service
 
 router = APIRouter(tags=["Dashboard"])
 
@@ -41,4 +43,52 @@ def get_dashboard_stream(request: Request) -> Any:
         request=request,
         name="drone_card_fragment.html",
         context={"summary": summary},
+    )
+
+
+@router.post("/api/features/dashboard/command")
+async def send_flight_command(request: Request) -> Any:
+    """비행 제어 명령 송출 엔드포인트 (HTMX 및 B1 단일 봉투 공용)."""
+    content_type = request.headers.get("content-type", "")
+    try:
+        if "application/json" in content_type:
+            body = await request.json()
+        else:
+            form = await request.form()
+            body = dict(form)
+            for p in ("param1", "param2", "param3", "param4"):
+                if p in body:
+                    try:
+                        body[p] = float(body[p])
+                    except (ValueError, TypeError):
+                        body[p] = 0.0
+
+        cmd = DroneCommandIn(**body)
+    except Exception as exc:
+        if request.headers.get("HX-Request"):
+            return templates.TemplateResponse(
+                request=request,
+                name="command_feedback.html",
+                context={"success": False, "error_message": str(exc)},
+                status_code=400,
+            )
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "data": None, "error": {"code": "VAL_ERR", "message": str(exc)}},
+        )
+
+    service = get_flight_command_service()
+    result = service.dispatch_command(cmd)
+
+    if request.headers.get("HX-Request"):
+        return templates.TemplateResponse(
+            request=request,
+            name="command_feedback.html",
+            context={"success": True, "command": cmd.command},
+            status_code=200,
+        )
+
+    return JSONResponse(
+        status_code=200,
+        content={"success": True, "data": result, "error": None},
     )

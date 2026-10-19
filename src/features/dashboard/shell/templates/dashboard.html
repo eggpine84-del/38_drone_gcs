@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- B-2 Header: 상단 전술 헤더바 (모바일/PC 무짤림 1줄 고정) -->
-<header class="flex items-center justify-between pb-6 mb-8 border-b border-slate-800/80">
+<header class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800/80">
   <div class="flex items-center space-x-3">
     <!-- 1em 순수 인라인 SVG 관제 레이더 아이콘 -->
     <div class="p-2.5 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
@@ -20,13 +20,172 @@
     </div>
   </div>
 
-  <!-- 실시간 스트림 연결 인디케이터 (B-6 Status Badge) -->
-  <div class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-mono">
-    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-    <span class="w-2 h-2 rounded-full bg-emerald-500 -ml-3"></span>
-    <span class="text-slate-300">HTMX 실시간 갱신</span>
+  <div class="flex items-center space-x-3">
+    <!-- 실시간 스트림 연결 인디케이터 (B-6 Status Badge) -->
+    <div class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-mono">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+      <span class="w-2 h-2 rounded-full bg-emerald-500 -ml-3"></span>
+      <span class="text-slate-300">HTMX 실시간 갱신</span>
+    </div>
+
+    <!-- 순수 HTML/CSS 서랍(Drawer) 컨테이너 (details 네이티브 컴포넌트) -->
+    <details class="group relative">
+      <summary class="drawer-toggle-btn list-none cursor-pointer flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-cyan-950/90 border border-cyan-500/60 text-cyan-300 font-mono text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:bg-cyan-900/90 active:scale-95 transition">
+        <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7"/>
+        </svg>
+        <span>전술 서랍</span>
+      </summary>
+
+      <!-- 우측 슬라이딩 전술 서랍 패널 (15종 전문 제어기) -->
+      <aside class="tactical-drawer-panel fixed top-0 right-0 h-full w-84 md:w-96 bg-slate-950/95 backdrop-blur-2xl border-l border-slate-800/90 z-50 shadow-2xl flex flex-col justify-between overflow-y-auto">
+        <!-- 서랍 상단 헤더 -->
+        <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+            <h2 class="text-sm font-bold font-mono text-slate-100 uppercase tracking-wider">전술 관제 도구함 (15종)</h2>
+          </div>
+          <span class="text-xs font-mono text-slate-500 cursor-pointer p-1">닫기(토글)</span>
+        </div>
+
+        <!-- 서랍 메인 본문 (4대 전문 그룹 아코디언) -->
+        <div class="p-5 space-y-6 flex-1">
+          <!-- 그룹 1: 수동 조종 조그 패드 -->
+          <div class="jog-pad-container p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="text-xs font-mono font-bold text-slate-200 uppercase mb-3">수동 비행 조작 (조그 패드)</div>
+            <div class="grid grid-cols-3 gap-1.5 text-center my-2">
+              <div></div>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "MOVE", "param1": 2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition">▲ 전진</button>
+              <div></div>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "MOVE", "param2": -2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition">◀ 좌</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "HOLD"}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-500/40 text-[10px] font-bold">정지</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "MOVE", "param2": 2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition">우 ▶</button>
+              <div></div>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "MOVE", "param1": -2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition">▼ 후진</button>
+              <div></div>
+            </div>
+            <!-- 고도 상승 / 하강 -->
+            <div class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-800/60">
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "MOVE", "param3": -1.0}' hx-target="#flight-action-feedback" class="py-1.5 rounded-lg bg-slate-800/80 hover:bg-emerald-950 hover:text-emerald-400 text-slate-300 font-mono text-xs font-bold transition">▲ 상승 (+1m)</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "MOVE", "param3": 1.0}' hx-target="#flight-action-feedback" class="py-1.5 rounded-lg bg-slate-800/80 hover:bg-teal-950 hover:text-teal-400 text-slate-300 font-mono text-xs font-bold transition">▼ 하강 (-1m)</button>
+            </div>
+          </div>
+
+          <!-- 그룹 2: 카메라 & 짐벌 제어 -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="text-xs font-mono font-bold text-slate-200 uppercase mb-2.5">카메라 & 짐벌 제어</div>
+            <div class="grid grid-cols-2 gap-2">
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "GIMBAL", "param1": -90.0}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition">수직 하향 (-90°)</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "GIMBAL", "param1": 0.0}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition">수평 정면 (0°)</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "GIMBAL", "param1": 1.0}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition">사진 촬영 (Shutter)</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "GIMBAL", "param1": 2.0}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition">동영상 녹화</button>
+            </div>
+          </div>
+
+          <!-- 그룹 3: 비행 모드 전환 -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="text-xs font-mono font-bold text-slate-200 uppercase mb-2.5">비행 모드 전환</div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "HOLD"}' hx-target="#flight-action-feedback" class="p-1.5 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-[11px] transition">LOITER</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "ARM", "param1": 1.0}' hx-target="#flight-action-feedback" class="p-1.5 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-[11px] transition">GUIDED</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "LAND"}' hx-target="#flight-action-feedback" class="p-1.5 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-[11px] transition">LAND</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "RTL"}' hx-target="#flight-action-feedback" class="p-1.5 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-[11px] transition">RTL</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "SET_MODE", "param1": 1.0}' hx-target="#flight-action-feedback" class="p-1.5 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-[11px] transition">AUTO</button>
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "SET_MODE", "param1": 7.0}' hx-target="#flight-action-feedback" class="p-1.5 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-[11px] transition">CIRCLE</button>
+            </div>
+          </div>
+
+          <!-- 그룹 4: 특수 임무 & 비상 모터 차단 -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2.5">
+            <div class="text-xs font-mono font-bold text-slate-200 uppercase">특수 임무 장치</div>
+            <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "DROP"}' hx-target="#flight-action-feedback" class="w-full py-2 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold hover:bg-amber-900/60 transition">
+              물품 투하 (Gripper Release)
+            </button>
+            <div class="pt-2 border-t border-red-900/40">
+              <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "SITL-COPTER-1", "command": "KILL"}' hx-confirm="경고: 공중에서 모터를 즉시 강제 차단합니다! 추락 위험이 있습니다. 계속하시겠습니까?" hx-target="#flight-action-feedback" class="w-full py-2.5 rounded-lg bg-red-950/80 border border-red-500 text-red-300 font-mono text-xs font-bold hover:bg-red-900 active:scale-95 transition shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                긴급 모터 차단 (Emergency Kill)
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </details>
   </div>
 </header>
+
+<!-- ========================================================================= -->
+<!-- [상시 노출 5대 핵심 액션 바] 메인 상단 큼직한 골든 액션 패널             -->
+<!-- ========================================================================= -->
+<section class="main-flight-action-bar mb-6 p-4 rounded-2xl bg-slate-900/90 backdrop-blur-xl border border-slate-800/90 shadow-2xl flex flex-wrap items-center justify-between gap-4">
+  <!-- 대상 기체 식별기 -->
+  <div class="flex items-center space-x-2">
+    <span class="text-xs font-mono text-slate-400 uppercase tracking-wider">관제 기체:</span>
+    <span class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-cyan-400 font-mono text-xs font-bold">SITL-COPTER-1</span>
+  </div>
+
+  <!-- 5대 핵심 비행 액션 버튼군 (상시 노출) -->
+  <div class="flex flex-wrap items-center gap-2.5">
+    <!-- 1. 시동 (Arm) -->
+    <button hx-post="/api/features/dashboard/command"
+            hx-vals='{"drone_id": "SITL-COPTER-1", "command": "ARM", "param1": 1.0}'
+            hx-target="#flight-action-feedback"
+            class="btn-action-arm flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-mono text-xs font-bold hover:bg-emerald-900/80 active:scale-95 transition shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+      <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+      <span>시동 (Arm)</span>
+    </button>
+
+    <!-- 2. 10m 이륙 (Takeoff) -->
+    <button hx-post="/api/features/dashboard/command"
+            hx-vals='{"drone_id": "SITL-COPTER-1", "command": "TAKEOFF", "param1": 10.0}'
+            hx-target="#flight-action-feedback"
+            class="btn-action-takeoff flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-900/90 active:scale-95 transition shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+      <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+      </svg>
+      <span>10m 이륙</span>
+    </button>
+
+    <!-- 3. 제자리 공중 정지 (Hold) -->
+    <button hx-post="/api/features/dashboard/command"
+            hx-vals='{"drone_id": "SITL-COPTER-1", "command": "HOLD"}'
+            hx-target="#flight-action-feedback"
+            class="btn-action-hold flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-950/80 border border-amber-500/50 text-amber-300 font-mono text-xs font-bold hover:bg-amber-900/80 active:scale-95 transition shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+      <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span>공중 정지</span>
+    </button>
+
+    <!-- 4. 원점 복귀 (RTL) -->
+    <button hx-post="/api/features/dashboard/command"
+            hx-vals='{"drone_id": "SITL-COPTER-1", "command": "RTL"}'
+            hx-target="#flight-action-feedback"
+            class="btn-action-rtl flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-950/80 border border-indigo-500/50 text-indigo-300 font-mono text-xs font-bold hover:bg-indigo-900/80 active:scale-95 transition shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+      <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+      </svg>
+      <span>원점 복귀</span>
+    </button>
+
+    <!-- 5. 현위치 착륙 (Land) -->
+    <button hx-post="/api/features/dashboard/command"
+            hx-vals='{"drone_id": "SITL-COPTER-1", "command": "LAND"}'
+            hx-target="#flight-action-feedback"
+            class="btn-action-land flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-teal-950/80 border border-teal-500/50 text-teal-300 font-mono text-xs font-bold hover:bg-teal-900/80 active:scale-95 transition shadow-[0_0_10px_rgba(20,184,166,0.2)]">
+      <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+      </svg>
+      <span>착륙</span>
+    </button>
+  </div>
+
+  <!-- 상태 안내 피드백 뱃지 (HTMX 자동 교체) -->
+  <div id="flight-action-feedback" class="text-xs font-mono text-slate-400 tracking-wide">
+    관제 대기 중
+  </div>
+</section>
 
 <!-- HTMX 실시간 자동 폴링 컨테이너 (Zero-Lag 비동기 조각 교체) -->
 <div id="drone-stream-container"

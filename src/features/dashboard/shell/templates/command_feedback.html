@@ -1,0 +1,5 @@
+{% if success %}
+<span class="text-emerald-400 font-mono text-xs font-bold animate-pulse">명령 [{{ command }}] 송출 성공</span>
+{% else %}
+<span class="text-red-400 font-mono text-xs font-bold">명령 실패: {{ error_message }}</span>
+{% endif %}
