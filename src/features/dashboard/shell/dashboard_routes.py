@@ -81,8 +81,16 @@ async def send_flight_command(request: Request) -> Any:
         if "application/json" in content_type:
             body = await request.json()
         else:
-            form = await request.form()
-            body = dict(form)
+            try:
+                form = await request.form()
+                body = dict(form)
+            except Exception:
+                # python-multipart 부재 시 순수 파이썬 urllib 파싱 안전망 (Zero-Crash)
+                from urllib.parse import parse_qs
+                raw_bytes = await request.body()
+                parsed = parse_qs(raw_bytes.decode("utf-8"))
+                body = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
+
             for p in ("param1", "param2", "param3", "param4"):
                 if p in body:
                     try:
@@ -90,7 +98,10 @@ async def send_flight_command(request: Request) -> Any:
                     except (ValueError, TypeError):
                         body[p] = 0.0
 
-        cmd = DroneCommandIn(**body)
+        # DTO 화이트리스트 필터링 (T1 Input Distrust 및 extra='forbid' 헌법 준수)
+        allowed_fields = {"drone_id", "command", "param1", "param2", "param3", "param4"}
+        clean_body = {k: v for k, v in body.items() if k in allowed_fields}
+        cmd = DroneCommandIn(**clean_body)
     except Exception as exc:
         if request.headers.get("HX-Request"):
             return templates.TemplateResponse(
