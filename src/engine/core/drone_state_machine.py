@@ -48,7 +48,7 @@ ALLOWED_TRANSITIONS: Final[dict[DroneStatus, FrozenSet[DroneStatus]]] = {
     DroneStatus.IN_FLIGHT: frozenset({DroneStatus.LANDING, DroneStatus.EMERGENCY_RTH}),
     DroneStatus.LANDING: frozenset({DroneStatus.IDLE, DroneStatus.TERMINATED, DroneStatus.EMERGENCY_RTH}),
     DroneStatus.TERMINATED: frozenset(),  # 종결 상태: 추가 전이 영구 불허 (공리 2 및 금기 3)
-    DroneStatus.EMERGENCY_RTH: frozenset({DroneStatus.LANDING, DroneStatus.TERMINATED}),
+    DroneStatus.EMERGENCY_RTH: frozenset({DroneStatus.LANDING, DroneStatus.TERMINATED, DroneStatus.IDLE}),
 }
 
 MIN_BATTERY: Final[int] = 0

@@ -22,6 +22,11 @@ class FlightCommandService:
         self._connection = connection
         logger.info("비행 명령 서비스 MAVLink 소켓 바인딩 갱신: %s", "연결됨" if connection else "해제됨")
 
+    @property
+    def connection(self) -> Any:
+        """현재 바인딩된 MAVLink 통신 소켓을 반환합니다."""
+        return self._connection
+
     def _extract_target_system(self, drone_id: str) -> int:
         """기체 ID로부터 MAVLink target_system SysID를 동적으로 추출합니다."""
         clean_id = (drone_id or "").strip().upper()

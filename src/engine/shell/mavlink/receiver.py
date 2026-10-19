@@ -80,6 +80,11 @@ class MAVLinkReceiver:
             self._is_connected = True
             logger.info("MAVLink 연결 성공: %s (기체: %s)", conn_str, self._drone_id)
             self._send_gcs_heartbeat_and_stream_request()
+            try:
+                from src.features.dashboard.shell.flight_command_service import get_flight_command_service
+                get_flight_command_service().set_connection(self._connection)
+            except Exception:
+                pass
         except Exception as exc:
             logger.error("MAVLink 연결 실패: %s - 사유: %s", conn_str, str(exc))
             self._connection = None
@@ -144,6 +149,11 @@ class MAVLinkReceiver:
             except Exception:
                 pass
             self._connection = None
+            try:
+                from src.features.dashboard.shell.flight_command_service import get_flight_command_service
+                get_flight_command_service().set_connection(None)
+            except Exception:
+                pass
             logger.warning("MAVLink 통신 단절 감지 - 재연결 대기 (기체: %s)", self._drone_id)
 
     def poll_once(self) -> int:
