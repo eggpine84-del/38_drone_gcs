@@ -9,6 +9,8 @@ VALID_COMMANDS = {
     "DISARM",
     "TAKEOFF",
     "HOLD",
+    "LOITER",
+    "GUIDED",
     "RTL",
     "LAND",
     "MOVE",

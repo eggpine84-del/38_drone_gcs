@@ -160,3 +160,28 @@ def parse_connection_strings_core(
 
     return result if result else [default_conn.strip()]
 
+
+def resolve_active_drone_id(
+    available_drones: Optional[list[str]],
+    default_fallback: str = "DRONE-01",
+) -> str:
+    """원장에 등록된 가용 기체 목록으로부터 현재 조종 대상 기체 ID를 결정론적으로 선출합니다.
+
+    Args:
+        available_drones: 현재 원장에 등록된 기체 식별자 목록.
+        default_fallback: 등록 기체가 없을 때 사용할 기본 폴백 식별자.
+
+    Returns:
+        str: 선출된 활성 기체 식별자.
+    """
+    # 1. Guard Clause: 가용 기체 리스트가 유효하고 원소가 존재하는 경우 최신 기체 선출
+    if available_drones and isinstance(available_drones, (list, tuple)):
+        valid_ids = [d.strip() for d in available_drones if d and str(d).strip()]
+        if valid_ids:
+            return valid_ids[0]
+
+    # 2. 폴백 반환 및 빈값 가드
+    fallback = default_fallback.strip() if default_fallback and default_fallback.strip() else "DRONE-01"
+    return fallback
+
+

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
+from src.engine.core.mavlink_parser_core import resolve_active_drone_id
 from src.features.dashboard.core.dashboard_core import compute_dashboard_summary
 from src.features.dashboard.shell.dashboard_repository import get_all_active_drones_latest
 from src.features.dashboard.shell.command_dto import DroneCommandIn
@@ -27,10 +28,23 @@ def get_dashboard_page(request: Request) -> Any:
     """메인 전술 관제탑 전체 페이지 렌더링 (GET /)."""
     records = get_all_active_drones_latest()
     summary = compute_dashboard_summary(records)
+    available_ids = [r["drone_id"] for r in records if "drone_id" in r]
+    default_id = (os.environ.get("DEFAULT_DRONE_ID") or "DRONE-01").strip() or "DRONE-01"
+
+    requested_id = request.query_params.get("drone_id", "").strip()
+    if requested_id and (requested_id in available_ids or requested_id == default_id):
+        active_drone_id = requested_id
+    else:
+        active_drone_id = resolve_active_drone_id(available_ids, default_fallback=default_id)
+
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"summary": summary},
+        context={
+            "summary": summary,
+            "active_drone_id": active_drone_id,
+            "available_drones": available_ids if available_ids else [active_drone_id],
+        },
     )
 
 
@@ -39,10 +53,23 @@ def get_dashboard_stream(request: Request) -> Any:
     """HTMX 실시간 폴링용 순수 HTML 조각(Fragment) 렌더링."""
     records = get_all_active_drones_latest()
     summary = compute_dashboard_summary(records)
+    available_ids = [r["drone_id"] for r in records if "drone_id" in r]
+    default_id = (os.environ.get("DEFAULT_DRONE_ID") or "DRONE-01").strip() or "DRONE-01"
+
+    requested_id = request.query_params.get("drone_id", "").strip()
+    if requested_id and (requested_id in available_ids or requested_id == default_id):
+        active_drone_id = requested_id
+    else:
+        active_drone_id = resolve_active_drone_id(available_ids, default_fallback=default_id)
+
     return templates.TemplateResponse(
         request=request,
         name="drone_card_fragment.html",
-        context={"summary": summary},
+        context={
+            "summary": summary,
+            "active_drone_id": active_drone_id,
+            "available_drones": available_ids if available_ids else [active_drone_id],
+        },
     )
 
 

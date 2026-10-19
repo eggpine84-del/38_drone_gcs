@@ -110,6 +110,10 @@ async def lifespan(app: FastAPI):
                 auto_detect_sysid=True,
             )
 
+        # 활성 MAVLink 통신 소켓을 웹 비행 제어 명령 서비스에 직결
+        from src.features.dashboard.shell.flight_command_service import get_flight_command_service
+        get_flight_command_service().set_connection(receiver.connection)
+
         async def _mavlink_worker():
             while not stop_event.is_set():
                 try:
@@ -125,6 +129,9 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        from src.features.dashboard.shell.flight_command_service import get_flight_command_service
+        get_flight_command_service().set_connection(None)
+
         if worker_task:
             stop_event.set()
             worker_task.cancel()
