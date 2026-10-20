@@ -12,6 +12,8 @@ import os
 import pytest
 
 FORBID_VALUE: str = "forbid"
+BANNED_RAW_TYPES: frozenset[str] = frozenset({"dict", "Dict", "Any", "Mapping", "MutableMapping", "object"})
+ROUTE_FILE_SUFFIXES: tuple[str, ...] = ("routes.py", "route.py", "router.py", "routers.py", "api.py")
 
 
 def _is_forbid_literal(node: ast.AST) -> bool:
@@ -56,8 +58,20 @@ def _class_declares_extra_forbid(node: ast.ClassDef) -> bool:
     return False
 
 
+def _find_banned_type_in_annotation(ann: ast.AST) -> str:
+    """어노테이션 AST 트리 전체를 순회하며 dict, Dict, Any 등 금지된 타입이 포함되어 있는지 탐색합니다.
+    (Optional[dict], dict | None, list[dict], typing.Dict 등 중첩/유니온 우회 원천 차단)
+    """
+    for sub in ast.walk(ann):
+        if isinstance(sub, ast.Name) and sub.id in BANNED_RAW_TYPES:
+            return sub.id
+        if isinstance(sub, ast.Attribute) and sub.attr in BANNED_RAW_TYPES:
+            return sub.attr
+    return ""
+
+
 def test_routes_reject_raw_dict_input_guard():
-    """대문 규격 가드 1: routes.py의 POST/PUT 엔드포인트 파라미터에 날것의 dict/Dict/Any 사용 차단."""
+    """대문 규격 가드 1: routes/router.py의 POST/PUT/PATCH 엔드포인트에 날것의 dict/Dict/Any 및 무타입 인자 차단."""
     src_root = "src"
     if not os.path.exists(src_root):
         pytest.skip("src 디렉터리 미도입 프로젝트 통과")
@@ -65,9 +79,10 @@ def test_routes_reject_raw_dict_input_guard():
     violations = []
     for root, _, files in os.walk(src_root):
         for f in files:
-            if not (f.endswith("routes.py") or f.endswith("route.py")):
+            if not f.endswith(ROUTE_FILE_SUFFIXES):
                 continue
             fpath = os.path.join(root, f)
+            rel_path = os.path.relpath(fpath)
             with open(fpath, "r", encoding="utf-8", errors="ignore") as fp:
                 try:
                     tree = ast.parse(fp.read(), filename=f)
@@ -94,25 +109,46 @@ def test_routes_reject_raw_dict_input_guard():
                     if not is_http_entry:
                         continue
 
-                    # 함수 인자 어노테이션 검사
-                    for arg in node.args.args:
+                    # 1. 위치 인자 + 키워드 전용 인자(*) 전체 검사
+                    all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+                    for arg in all_args:
                         if arg.arg in ("self", "cls", "request"):
                             continue
                         ann = arg.annotation
                         if ann is None:
+                            violations.append(
+                                f"[{rel_path}:{node.name}]: 인자 '{arg.arg}' 타입 어노테이션 누락 "
+                                f"-> 타입 힌트 생략 우회 금지. Pydantic DTO 타입을 명시하세요."
+                            )
                             continue
 
-                        # dict, Dict, Any 직격 감지
-                        type_name = ""
-                        if isinstance(ann, ast.Name):
-                            type_name = ann.id
-                        elif isinstance(ann, ast.Subscript) and isinstance(ann.value, ast.Name):
-                            type_name = ann.value.id
-
-                        if type_name in ("dict", "Dict", "Any"):
+                        # 중첩/유니온 포함 dict, Dict, Any 직격 감지
+                        banned_type = _find_banned_type_in_annotation(ann)
+                        if banned_type:
                             violations.append(
-                                f"[{os.path.relpath(fpath)}:{node.name}]: 인자 '{arg.arg}: {type_name}' "
-                                f"-> 날것의 딕셔너리 사용 금지. Pydantic DTO로 규격화 필수."
+                                f"[{rel_path}:{node.name}]: 인자 '{arg.arg}: {banned_type}' "
+                                f"-> 날것의 딕셔너리/Any 사용 금지. Pydantic DTO로 규격화 필수."
+                            )
+
+                    # 2.**kwargs 가변 키워드 인자 우회 차단
+                    if node.args.kwarg is not None:
+                        violations.append(
+                            f"[{rel_path}:{node.name}]: 가변 인자 '**{node.args.kwarg.arg}' 사용 금지 "
+                            f"-> Pydantic DTO로 입력 스키마를 고정하세요."
+                        )
+
+                    # 3. 함수 본문 내 request.json() / request.form() 직접 추출 뒷문 차단
+                    for sub in ast.walk(node):
+                        if (
+                            isinstance(sub, ast.Call)
+                            and isinstance(sub.func, ast.Attribute)
+                            and isinstance(sub.func.value, ast.Name)
+                            and sub.func.value.id == "request"
+                            and sub.func.attr in ("json", "form", "body")
+                        ):
+                            violations.append(
+                                f"[{rel_path}:{node.name}]: 'request.{sub.func.attr}()' 직접 호출 감지 "
+                                f"-> DTO 검문소 우회 금지. 파라미터에 Pydantic DTO를 직접 선언하세요."
                             )
 
     assert not violations, (
