@@ -99,3 +99,17 @@ def test_pin_no_update_or_delete_interface(repo):
     assert not hasattr(repo, "update"), "Repository에 update 메서드 존재 불가 (Append-Only 헌법)"
     assert not hasattr(repo, "delete"), "Repository에 delete 메서드 존재 불가 (Append-Only 헌법)"
     assert not hasattr(repo, "remove"), "Repository에 remove 메서드 존재 불가 (Append-Only 헌법)"
+
+
+def test_pin_db_schema_no_error_swallowing():
+    """db_schema 모듈에 except: pass 에러 삼키기가 없음을 검증합니다."""
+    import ast
+    with open("src/engine/shell/db_schema.py", "r", encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    swallowed = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler):
+            if len(node.body) == 1 and isinstance(node.body[0], (ast.Pass, ast.Constant)):
+                swallowed.append(f"L{node.lineno}")
+    assert not swallowed, f"db_schema 에러 삼키기 발견: {swallowed}"
+

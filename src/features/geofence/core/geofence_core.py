@@ -127,21 +127,20 @@ def evaluate_geofence(
         )
 
     # 3. 비행 금지 구역(NFZ) 침범 판정
-    if nfz_list:
-        for nfz in nfz_list:
-            c_lat = float(nfz.get("latitude", 0.0))
-            c_lon = float(nfz.get("longitude", 0.0))
-            radius = float(nfz.get("radius_meters", 0.0))
-            name = str(nfz.get("name", "미지정 NFZ"))
+    for nfz in (nfz_list or ()):
+        c_lat = float(nfz.get("latitude", 0.0))
+        c_lon = float(nfz.get("longitude", 0.0))
+        radius = float(nfz.get("radius_meters", 0.0))
+        name = str(nfz.get("name", "미지정 NFZ"))
 
-            if is_point_in_circle(latitude, longitude, c_lat, c_lon, radius):
-                return GeofenceResult(
-                    drone_id=drone_id,
-                    is_breached=True,
-                    breach_type="NFZ_INTRUSION",
-                    reason=f"비행 금지 구역 침범 감지: [{name}] 반경 {radius}m 이내 진입",
-                    recommended_status="EMERGENCY_RTH",
-                )
+        if is_point_in_circle(latitude, longitude, c_lat, c_lon, radius):
+            return GeofenceResult(
+                drone_id=drone_id,
+                is_breached=True,
+                breach_type="NFZ_INTRUSION",
+                reason=f"비행 금지 구역 침범 감지: [{name}] 반경 {radius}m 이내 진입",
+                recommended_status="EMERGENCY_RTH",
+            )
 
     # 4. 모든 검문 통과 (안전 비행)
     return GeofenceResult(

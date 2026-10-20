@@ -9,11 +9,14 @@ import pytest
 
 def test_1_config_integrity():
     """① 환경 가드: Config 메모리 로드 및 필수 키 주입 검증"""
-    try:
-        from src.shell.config import get_config
-        assert get_config() is not None
-    except ImportError:
-        pytest.skip("Config 미도입 통과")
+    for mod_path in ("src.shell.config", "src.engine.shell.config", "src.engine.config"):
+        try:
+            mod = __import__(mod_path, fromlist=["get_config"])
+            assert mod.get_config() is not None
+            return
+        except ImportError:
+            continue
+    pytest.skip("Config 미도입 통과")
 
 
 NONDETERMINISTIC_CALLS: frozenset[str] = frozenset({
@@ -21,16 +24,19 @@ NONDETERMINISTIC_CALLS: frozenset[str] = frozenset({
     "datetime.datetime.now", "datetime.datetime.utcnow", "datetime.datetime.today", "datetime.date.today",
     "time.time", "time.time_ns", "time.monotonic", "time.perf_counter",
     "uuid.uuid1", "uuid.uuid4", "os.urandom",
+    # from ... import 구문을 통한 단독 호출 우회 차단
+    "now", "utcnow", "today", "time", "time_ns", "monotonic", "perf_counter", "uuid1", "uuid4", "urandom",
 })
-NONDETERMINISTIC_MODULES: frozenset[str] = frozenset({"random", "secrets"})
+NONDETERMINISTIC_MODULES: frozenset[str] = frozenset({"random", "secrets", "uuid", "time"})
+BANNED_CORE_CALLS: frozenset[str] = frozenset({"open", "os.remove", "os.unlink", "os.makedirs", "os.mkdir"})
 
 
 def _find_core_dirs(src_root: str = "src") -> list[str]:
-    """src/ 하위의 모든 core 디렉터리를 구조 무관하게 탐색 (src/core, src/features/*/core, src/shared/core 등)."""
+    """src/ 하위의 모든 core 및 shared 디렉터리를 구조 무관하게 탐색 (src/core, src/features/*/core, src/shared 등)."""
     found: list[str] = []
     for r, dirs, _ in os.walk(src_root):
         dirs[:] = [d for d in dirs if not d.startswith((".", "__"))]
-        if os.path.basename(r) == "core":
+        if os.path.basename(r) in ("core", "shared"):
             found.append(r)
     return sorted(found)
 
@@ -46,8 +52,11 @@ def _dotted_name(node: ast.AST) -> str:
 
 
 def test_2_pure_core_fcis_separation():
-    """② 순수코어 가드: src/ 하위 모든 core 및 tests/test_core 내 I/O 0건, 시간/난수 직접 호출 0건 AST 검증"""
-    banned_modules = {"sqlite3", "sqlalchemy", "requests", "httpx", "urllib.request", "socket", "psycopg2"}
+    """② 순수코어 가드: src/ 하위 모든 core(shared 포함) 및 tests/test_core 내 I/O 0건, 시간/난수 직접 호출 0건 AST 검증"""
+    banned_modules = {
+        "sqlite3", "sqlalchemy", "requests", "httpx", "urllib.request",
+        "urllib", "socket", "psycopg2", "aiohttp", "shutil", "subprocess",
+    }
     violations = []
 
     core_dirs = _find_core_dirs() if os.path.exists("src") else []
@@ -73,7 +82,7 @@ def test_2_pure_core_fcis_separation():
                     if target == "tests/test_core" and any(k in content for k in ["os.path.exists(", "open("]):
                         violations.append((f, "물리 파일 I/O 단언 금지 위반"))
 
-                    # 금지된 외부 I/O 모듈 import 차단
+                    # 금지된 외부 I/O 모듈 import 및 비결정적 호출 차단
                     tree = ast.parse(content, filename=f)
                     for n in ast.walk(tree):
                         if isinstance(n, (ast.Import, ast.ImportFrom)):
@@ -81,21 +90,27 @@ def test_2_pure_core_fcis_separation():
                             if any(any(m in name for m in banned_modules) for name in names):
                                 violations.append((f, "I/O 모듈 import 금지 위반"))
                             if any(name.split(".")[0] in NONDETERMINISTIC_MODULES for name in names):
-                                violations.append((f, "난수 모듈 import 금지 위반 (값은 인자로 주입)"))
-                        if isinstance(n, ast.Call) and _dotted_name(n.func) in NONDETERMINISTIC_CALLS:
-                            violations.append((f, f"시간/난수 직접 호출 금지 위반: {_dotted_name(n.func)}() (값은 인자로 주입)"))
+                                violations.append((f, "난수/시간 모듈 import 금지 위반 (값은 인자로 주입)"))
+                        if isinstance(n, ast.Call):
+                            call_name = _dotted_name(n.func)
+                            if call_name in NONDETERMINISTIC_CALLS:
+                                violations.append((f, f"시간/난수 직접 호출 금지 위반: {call_name}() (값은 인자로 주입)"))
+                            if call_name in BANNED_CORE_CALLS:
+                                violations.append((f, f"코어 내부 직접 파일/OS 조작 금지 위반: {call_name}()"))
 
     assert not violations, f"순수코어 위반 감지: {violations}"
 
 
 def test_3_main_orchestration_guard():
     """③ 메인 조율 가드: main.py 내 원시 DB 쿼리/HTML 작성 차단"""
-    if not os.path.exists("main.py"):
+    entry_files = [f for f in ("main.py", "run.py", "src/main.py", "src/engine/main.py") if os.path.exists(f)]
+    if not entry_files:
         pytest.skip("main.py 미도입 통과")
-    with open("main.py", "r", encoding="utf-8", errors="ignore") as f:
-        content = f.read()
-    for kw in ["CREATE TABLE ", "SELECT * FROM ", "<html", "<body"]:
-        assert kw not in content, f"main.py 직접 로직({kw}) 포함 금지"
+    for entry in entry_files:
+        with open(entry, "r", encoding="utf-8", errors="ignore") as f:
+            content_upper = f.read().upper()
+        for kw in ["CREATE TABLE ", "SELECT * FROM ", "SELECT ", "INSERT INTO ", "UPDATE ", "DELETE FROM ", "<HTML", "<BODY"]:
+            assert kw not in content_upper, f"{entry} 직접 로직({kw}) 포함 금지"
 
 
 def test_4_single_adapter_ssot_guard():
@@ -104,14 +119,36 @@ def test_4_single_adapter_ssot_guard():
         pytest.skip("src 미도입 통과")
     violations = []
     for r, _, files in os.walk("src"):
-        if any(v in r.lower() for v in ["view", "routes", "ui"]):
+        if any(v in r.lower() for v in ["view", "routes", "router", "ui"]):
             for f in files:
                 if f.endswith(".py"):
-                    with open(os.path.join(r, f), "r", encoding="utf-8", errors="ignore") as fp:
+                    fpath = os.path.join(r, f)
+                    with open(fpath, "r", encoding="utf-8", errors="ignore") as fp:
                         c = fp.read()
                         if "open('config" in c or 'open("config' in c:
                             violations.append(f)
+                        try:
+                            tree = ast.parse(c, filename=f)
+                            for n in ast.walk(tree):
+                                if isinstance(n, ast.Call) and _dotted_name(n.func) in {"open", "sqlite3.connect"}:
+                                    violations.append(f"{f}:{n.lineno} ({_dotted_name(n.func)} 직접 호출)")
+                        except SyntaxError:
+                            continue
     assert not violations, f"화면 계층 파일 직접 open 금지 위반: {violations}"
+
+
+def _extract_db_identifier(conn) -> str:
+    """커넥션에서 물리 파일 경로(SQLite PRAGMA) 또는 DSN 식별자를 추출 (AssertionError 삼킴 방지용)"""
+    try:
+        cur = conn.cursor()
+        cur.execute("PRAGMA database_list;")
+        rows = cur.fetchall()
+        if rows and len(rows[0]) > 2 and rows[0][2]:
+            return os.path.normpath(rows[0][2])
+    except Exception:
+        pass
+    target = getattr(conn, "dsn", "") or str(getattr(conn, "url", ""))
+    return os.path.normpath(target) if target else ""
 
 
 def test_5_db_sandbox_smart_guard(tmp_path):
@@ -126,38 +163,38 @@ def test_5_db_sandbox_smart_guard(tmp_path):
             return
 
     active_path = get_active_db_path()
-    assert active_path != PROD_DB_PATH, (
+    assert os.path.normpath(active_path) != os.path.normpath(PROD_DB_PATH), (
         f"[재앙 차단: 테스트 중 운영 DB 직접 참조 감지]\n"
         f"활성 경로: {active_path}\n"
         f"운영 경로: {PROD_DB_PATH}\n"
         f"사유: 테스트 실행 시 운영 DB를 오염시키는 것은 영구 금지됩니다. tests/conftest.py 샌드박스를 확인하세요."
     )
 
-    # 실탄 물리 커넥션 검증: 인자 생략 및 PROD_DB_PATH 인자 전달 시 결코 운영 DB가 반환되지 않아야 함
+    norm_prod = os.path.normpath(PROD_DB_PATH)
+
+    # 실탄 물리 커넥션 검증 1: 인자 생략 시 결코 운영 DB가 반환되지 않아야 함
     conn = get_db_connection()
     try:
-        cur = conn.cursor()
-        cur.execute("PRAGMA database_list;")
-        db_file = os.path.normpath(cur.fetchall()[0][2])
-        assert db_file != os.path.normpath(PROD_DB_PATH), "get_db_connection이 테스트 중 운영 DB를 반환했습니다."
-    except Exception:
-        # SQLite 외 DB(PostgreSQL/Supabase) 환경 다형 지원
-        target = getattr(conn, "dsn", "") or str(getattr(conn, "url", ""))
-        if target and PROD_DB_PATH:
-            assert os.path.normpath(PROD_DB_PATH) not in os.path.normpath(target), "테스트 중 운영 DB 커넥션 감지"
+        db_file = _extract_db_identifier(conn)
     finally:
         conn.close()
 
+    if db_file and PROD_DB_PATH:
+        assert db_file != norm_prod and norm_prod not in db_file, (
+            "get_db_connection이 테스트 중 운영 DB를 반환했습니다."
+        )
+
+    # 실탄 물리 커넥션 검증 2: PROD_DB_PATH 인자 강제 전달 시에도 샌드박스로 우회되어야 함
     conn_override = get_db_connection(PROD_DB_PATH)
     try:
-        cur_override = conn_override.cursor()
-        cur_override.execute("PRAGMA database_list;")
-        db_file_override = os.path.normpath(cur_override.fetchall()[0][2])
-        assert db_file_override != os.path.normpath(PROD_DB_PATH), "PROD_DB_PATH 인자 전달 시 샌드박스 강제 전향에 실패했습니다."
-    except Exception:
-        pass
+        db_file_override = _extract_db_identifier(conn_override)
     finally:
         conn_override.close()
+
+    if db_file_override and PROD_DB_PATH:
+        assert db_file_override != norm_prod and norm_prod not in db_file_override, (
+            "PROD_DB_PATH 인자 전달 시 샌드박스 강제 전향에 실패했습니다."
+        )
 
 
 def test_6_shell_blackbox_contract_guard():

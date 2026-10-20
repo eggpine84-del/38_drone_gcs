@@ -97,3 +97,21 @@ def test_pin_invalid_coordinates_fail_safe():
     assert invalid_res.is_breached is True
     assert invalid_res.breach_type == "INVALID_COORDINATES"
     assert invalid_res.recommended_status == "EMERGENCY_RTH"
+
+
+def test_pin_geofence_pure_flat_compliance():
+    """지오펜스 코어가 AST 중첩 if문 없이 평탄화되었는지 검증합니다."""
+    import ast
+    with open("src/features/geofence/core/geofence_core.py", "r", encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    nested_found = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "evaluate_geofence":
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.If):
+                    for child in sub.body:
+                        for n in ast.walk(child):
+                            if isinstance(n, ast.If):
+                                nested_found.append(f"L{sub.lineno} -> L{n.lineno}")
+    assert not nested_found, f"지오펜스 코어 중첩 if문 감지: {nested_found}"
+

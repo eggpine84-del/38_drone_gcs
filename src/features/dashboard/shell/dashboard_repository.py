@@ -36,8 +36,9 @@ def _resolve_effective_window(param_window: Optional[float]) -> Optional[float]:
         try:
             val = float(env_window)
             return val if val > 0.0 else None
-        except ValueError:
-            pass
+        except ValueError as exc:
+            import logging
+            logging.getLogger(__name__).debug("DASHBOARD_ACTIVE_WINDOW_SECONDS 파싱 실패(%s), 기본값 폴백: %s", env_window, str(exc))
 
     # 테스트 환경(pytest 구동 중이거나 APP_ENV == "test")일 때는 목업 테스트 호환을 위해 기본 무제한(None)
     if os.getenv("APP_ENV") == "test" or "pytest" in sys.modules:

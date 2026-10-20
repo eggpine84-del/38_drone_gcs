@@ -14,6 +14,7 @@ from src.engine.core.mavlink_parser_core import (
     resolve_drone_id_from_sysid,
 )
 from src.engine.shell.drone_gcs_service import DroneGCSService
+from src.engine.shell.mavlink.stream_requester import send_gcs_heartbeat_and_stream_request
 
 logger = logging.getLogger(__name__)
 
@@ -83,61 +84,22 @@ class MAVLinkReceiver:
             try:
                 from src.features.dashboard.shell.flight_command_service import get_flight_command_service
                 get_flight_command_service().set_connection(self._connection)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("비행 명령 서비스 소켓 연결 등록 예외: %s", str(exc))
         except Exception as exc:
             logger.error("MAVLink 연결 실패: %s - 사유: %s", conn_str, str(exc))
             self._connection = None
             self._is_connected = False
 
     def _send_gcs_heartbeat_and_stream_request(self) -> None:
-        """FCU로 GCS 하트비트 및 전체 텔레메트리 스트림 전송을 능동적으로 요청합니다.
-
-        ArduPilot/PX4는 GCS의 하트비트 및 데이터 스트림 요청이 없으면
-        대역폭 절약을 위해 텔레메트리 스트림을 개방하지 않으므로 자립적 송출이 필수적입니다.
-        """
+        """FCU로 GCS 하트비트 및 전체 텔레메트리 스트림 전송을 능동적으로 요청합니다 (위임)."""
         if not self.is_connected or not self._connection:
             return
-
-        mav = getattr(self._connection, "mav", None)
-        if not mav:
-            return
-
-        now = time.time()
-        if (now - self._last_heartbeat_sent) < self._heartbeat_interval:
-            return
-
-        self._last_heartbeat_sent = now
-
-        # 1. GCS 하트비트 송출 (MAV_TYPE_GCS=6, MAV_AUTOPILOT_INVALID=8)
-        if hasattr(mav, "heartbeat_send"):
-            try:
-                mav.heartbeat_send(
-                    6,  # MAV_TYPE_GCS
-                    8,  # MAV_AUTOPILOT_INVALID
-                    0,  # base_mode
-                    0,  # custom_mode
-                    0,  # system_status
-                )
-            except Exception as exc:
-                logger.debug("GCS 하트비트 송신 예외 무시: %s", str(exc))
-
-        # 2. 데이터 스트림 요청 송출 (ArduPilot 침묵 방어를 위한 5대 스트림 전수 개방)
-        if hasattr(mav, "request_data_stream_send"):
-            try:
-                target_sys = getattr(self._connection, "target_system", 1) or 1
-                target_comp = getattr(self._connection, "target_component", 1) or 1
-                # 0: ALL, 6: POSITION(GLOBAL_POSITION_INT), 2: EXTENDED_STATUS, 10: EXTRA1, 11: EXTRA2
-                for s_id in (0, 6, 2, 10, 11):
-                    mav.request_data_stream_send(
-                        target_sys,
-                        target_comp,
-                        s_id,
-                        4,  # 4Hz
-                        1,  # start
-                    )
-            except Exception as exc:
-                logger.debug("데이터 스트림 요청 송신 예외 무시: %s", str(exc))
+        self._last_heartbeat_sent = send_gcs_heartbeat_and_stream_request(
+            self._connection,
+            self._last_heartbeat_sent,
+            self._heartbeat_interval,
+        )
 
     def _handle_disconnect(self) -> None:
         """통신 단절 시 좀비 소켓을 닫고 상태를 재설정합니다."""
@@ -146,14 +108,14 @@ class MAVLinkReceiver:
         if self._connection and hasattr(self._connection, "close"):
             try:
                 self._connection.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("소켓 close 예외 무시: %s", str(exc))
             self._connection = None
             try:
                 from src.features.dashboard.shell.flight_command_service import get_flight_command_service
                 get_flight_command_service().set_connection(None)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("비행 명령 서비스 소켓 해제 예외: %s", str(exc))
             logger.warning("MAVLink 통신 단절 감지 - 재연결 대기 (기체: %s)", self._drone_id)
 
     def _try_auto_reconnect(self) -> bool:

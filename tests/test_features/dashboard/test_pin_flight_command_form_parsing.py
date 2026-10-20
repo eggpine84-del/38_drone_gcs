@@ -28,3 +28,23 @@ def test_pin_flight_command_form_urlencoded_success():
     assert response.status_code == 200
     assert "ARM" in response.text
 
+
+def test_pin_command_payload_flatten_compliance():
+    """비행 명령 파싱 엔드포인트가 else 내부 중첩 if 없이 평탄화되었는지 검증."""
+    import ast
+    with open("src/features/dashboard/shell/dashboard_routes.py", "r", encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    violations = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.If):
+                    is_elif = sub.orelse and len(sub.orelse) == 1 and isinstance(sub.orelse[0], ast.If)
+                    if not is_elif and sub.orelse:
+                        for child in sub.orelse:
+                            for n in ast.walk(child):
+                                if isinstance(n, ast.If):
+                                    violations.append(f"{node.name}: L{sub.lineno}")
+    assert not violations, f"dashboard_routes else 내부 if 발견: {violations}"
+
+

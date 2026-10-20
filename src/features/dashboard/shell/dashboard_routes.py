@@ -73,30 +73,36 @@ def get_dashboard_stream(request: Request) -> Any:
     )
 
 
+async def _extract_command_payload(request: Request, content_type: str) -> dict[str, Any]:
+    """요청 Content-Type에 맞추어 JSON 또는 Form 바디를 평탄하게 추출합니다."""
+    if "application/json" in content_type:
+        return await request.json()
+
+    try:
+        form = await request.form()
+        body = dict(form)
+    except Exception:
+        # python-multipart 부재 시 순수 파이썬 urllib 파싱 안전망 (Zero-Crash)
+        from urllib.parse import parse_qs
+        raw_bytes = await request.body()
+        parsed = parse_qs(raw_bytes.decode("utf-8"))
+        body = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
+
+    for p in ("param1", "param2", "param3", "param4"):
+        if p in body:
+            try:
+                body[p] = float(body[p])
+            except (ValueError, TypeError):
+                body[p] = 0.0
+    return body
+
+
 @router.post("/api/features/dashboard/command")
 async def send_flight_command(request: Request) -> Any:
     """비행 제어 명령 송출 엔드포인트 (HTMX 및 B1 단일 봉투 공용)."""
     content_type = request.headers.get("content-type", "")
     try:
-        if "application/json" in content_type:
-            body = await request.json()
-        else:
-            try:
-                form = await request.form()
-                body = dict(form)
-            except Exception:
-                # python-multipart 부재 시 순수 파이썬 urllib 파싱 안전망 (Zero-Crash)
-                from urllib.parse import parse_qs
-                raw_bytes = await request.body()
-                parsed = parse_qs(raw_bytes.decode("utf-8"))
-                body = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
-
-            for p in ("param1", "param2", "param3", "param4"):
-                if p in body:
-                    try:
-                        body[p] = float(body[p])
-                    except (ValueError, TypeError):
-                        body[p] = 0.0
+        body = await _extract_command_payload(request, content_type)
 
         # DTO 화이트리스트 필터링 (T1 Input Distrust 및 extra='forbid' 헌법 준수)
         allowed_fields = {"drone_id", "command", "param1", "param2", "param3", "param4"}

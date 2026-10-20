@@ -38,8 +38,9 @@ def init_db(db_path: Optional[str] = None) -> None:
     for col_def in ["description TEXT NOT NULL DEFAULT ''"]:
         try:
             cur.execute(f"ALTER TABLE items ADD COLUMN {col_def};")
-        except Exception:
-            pass  # 이미 컬럼이 존재하는 경우 0초 만에 안전 무시
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).debug("컬럼 마이그레이션 스킵(이미 존재): %s - 사유: %s", col_def, str(exc))
 
     # 3. 멱등 초기 시드 데이터 주입 (기존 데이터 존재 시 스킵)
     cur.execute("SELECT COUNT(*) FROM items WHERE is_deleted = 0;")

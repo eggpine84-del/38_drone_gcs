@@ -92,3 +92,17 @@ def test_2_receiver_handles_empty_queue_without_blocking():
     processed_count = receiver.poll_once()
     assert processed_count == 0
     assert service.get_latest_telemetry("DRONE-SITL-1") is None
+
+
+def test_pin_mavlink_receiver_no_error_swallowing():
+    """mavlink receiver 모듈에 except: pass 에러 삼키기가 없음을 검증합니다."""
+    import ast
+    with open("src/engine/shell/mavlink/receiver.py", "r", encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    swallowed = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler):
+            if len(node.body) == 1 and isinstance(node.body[0], (ast.Pass, ast.Constant)):
+                swallowed.append(f"L{node.lineno}")
+    assert not swallowed, f"mavlink receiver 에러 삼키기 발견: {swallowed}"
+

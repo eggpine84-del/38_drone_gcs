@@ -76,3 +76,17 @@ def test_flight_command_service_targets_autopilot_component():
     args = calls[0].args
     assert args[0] == 1  # target_system (DRONE-01 -> 1)
     assert args[1] == 1  # target_component (MAV_COMP_ID_AUTOPILOT1)
+
+
+def test_pin_dashboard_repository_no_error_swallowing():
+    """dashboard_repository 모듈에 except: pass 에러 삼키기가 없음을 검증합니다."""
+    import ast
+    with open("src/features/dashboard/shell/dashboard_repository.py", "r", encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    swallowed = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler):
+            if len(node.body) == 1 and isinstance(node.body[0], (ast.Pass, ast.Constant)):
+                swallowed.append(f"L{node.lineno}")
+    assert not swallowed, f"dashboard_repository 에러 삼키기 발견: {swallowed}"
+

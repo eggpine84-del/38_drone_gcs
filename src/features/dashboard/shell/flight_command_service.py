@@ -37,20 +37,20 @@ class FlightCommandService:
         if self._connection and hasattr(self._connection, "target_system") and self._connection.target_system:
             try:
                 return int(self._connection.target_system)
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as exc:
+                logger.debug("target_system 변환 예외: %s", str(exc))
         return 1
 
     def _get_mode_mapping(self) -> dict:
         """연결된 FCU의 동적 비행 모드 매핑 딕셔너리를 반환합니다 (하드코딩 0%)."""
-        if self._connection and hasattr(self._connection, "mode_mapping"):
-            try:
-                mapping = self._connection.mode_mapping()
-                if isinstance(mapping, dict):
-                    return mapping
-            except Exception:
-                pass
-        return {}
+        if not self._connection or not hasattr(self._connection, "mode_mapping"):
+            return {}
+        try:
+            mapping = self._connection.mode_mapping()
+            return mapping if isinstance(mapping, dict) else {}
+        except Exception as exc:
+            logger.debug("mode_mapping 추출 실패 예외: %s", str(exc))
+            return {}
 
     def _safe_set_mode(self, mode_id: int) -> None:
         """안전하게 FCU 비행 모드를 설정합니다."""
@@ -58,8 +58,8 @@ class FlightCommandService:
             return
         try:
             self._connection.set_mode(mode_id)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("set_mode 예외 무시: %s", str(exc))
 
     def _safe_arducopter_arm(self) -> None:
         """안전하게 arducopter 시동을 호출합니다."""
@@ -67,8 +67,8 @@ class FlightCommandService:
             return
         try:
             self._connection.arducopter_arm()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("arducopter_arm 예외 무시: %s", str(exc))
 
     def _safe_arducopter_disarm(self) -> None:
         """안전하게 arducopter 시동 해제를 호출합니다."""
@@ -76,8 +76,8 @@ class FlightCommandService:
             return
         try:
             self._connection.arducopter_disarm()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("arducopter_disarm 예외 무시: %s", str(exc))
 
     def _cmd_arm(self, conn: Any, mavutil: Any, target_sys: int, target_comp: int, mapping: dict, cmd: DroneCommandIn) -> None:
         arm_val = 1 if cmd.param1 >= 0.5 else 0

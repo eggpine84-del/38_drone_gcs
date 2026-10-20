@@ -28,3 +28,22 @@ def test_flight_command_service_table_driven_dispatch():
     res = service.dispatch_command(cmd)
     assert res["sent"] is True
     assert res["command"] == "ARM"
+
+
+def test_pin_flight_command_no_violations():
+    """flight_command_service에 중첩 if 및 except: pass 에러 삼키기가 없음을 검증합니다."""
+    import ast
+    with open("src/features/dashboard/shell/flight_command_service.py", "r", encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    violations = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.If):
+                    if any(isinstance(c, ast.If) for stmt in sub.body for c in ast.walk(stmt)):
+                        violations.append(f"중첩 if: {node.name} L{sub.lineno}")
+                elif isinstance(sub, ast.ExceptHandler):
+                    if len(sub.body) == 1 and isinstance(sub.body[0], (ast.Pass, ast.Constant)):
+                        violations.append(f"에러 삼키기: {node.name} L{sub.lineno}")
+    assert not violations, f"flight_command_service 위반 발견: {violations}"
+
