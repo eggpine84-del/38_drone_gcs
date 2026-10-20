@@ -101,3 +101,29 @@ def test_pin_failsafe_http_routes():
     assert check_data["success"] is True
     assert check_data["data"]["is_lost"] is True
     assert check_data["data"]["status"] == "EMERGENCY_RTH"
+
+
+def test_pin_failsafe_service_uses_explicit_constants_when_no_latest():
+    """드론 최신 이력이 없을 때 인라인 매직넘버 대신 명시적 기본 상수가 사용되는지 검증 (Red)."""
+    from src.engine.shell import drone_failsafe_service
+    from src.engine.shell.drone_failsafe_service import DroneFailsafeService
+    from src.engine.shell.drone_repository import InMemoryDroneLedgerRepository
+
+    repo = InMemoryDroneLedgerRepository()
+    service = DroneFailsafeService(repository=repo)
+    service.record_heartbeat("DRONE-FALLBACK-TEST", timestamp=100.0)
+
+    # 4초 경과 -> LOST 발령
+    res = service.check_drone_failsafe("DRONE-FALLBACK-TEST", current_time=104.0)
+    assert res.is_timeout is True
+
+    record = repo.get_latest("DRONE-FALLBACK-TEST")
+    assert record is not None
+    # 상수 정의 검증
+    assert getattr(drone_failsafe_service, "DEFAULT_FAILSAFE_LATITUDE", None) == 37.5665
+    assert getattr(drone_failsafe_service, "DEFAULT_FAILSAFE_LONGITUDE", None) == 126.9780
+    assert getattr(drone_failsafe_service, "DEFAULT_FAILSAFE_BATTERY_PERCENT", None) == 100
+    assert record.latitude == drone_failsafe_service.DEFAULT_FAILSAFE_LATITUDE
+    assert record.longitude == drone_failsafe_service.DEFAULT_FAILSAFE_LONGITUDE
+    assert record.battery == drone_failsafe_service.DEFAULT_FAILSAFE_BATTERY_PERCENT
+

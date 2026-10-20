@@ -47,3 +47,12 @@ def test_pin_flight_command_no_violations():
                         violations.append(f"에러 삼키기: {node.name} L{sub.lineno}")
     assert not violations, f"flight_command_service 위반 발견: {violations}"
 
+def test_pin_flight_command_mavlink_constants():
+    """flight_command_service의 MAVLink 기본 모드 및 매직넘버가 모듈 상수로 정의되어 있는지 검증합니다."""
+    import src.features.dashboard.shell.flight_command_service as fcs
+    assert getattr(fcs, "MAV_PARAM_ARM_MAGIC", None) == 21196
+    assert getattr(fcs, "DEFAULT_TAKEOFF_ALTITUDE_METERS", None) == 10.0
+    assert getattr(fcs, "DEFAULT_MODE_GUIDED", None) == 4
+    assert getattr(fcs, "DEFAULT_MODE_LOITER", None) == 5
+    assert getattr(fcs, "DEFAULT_MODE_RTL", None) == 6
+    assert getattr(fcs, "DEFAULT_MODE_LAND", None) == 9

@@ -9,6 +9,9 @@ from src.features.geofence.shell.geofence_dto import GeofenceCheckRequest
 from src.engine.core.telemetry_record import TelemetryRecord
 from src.engine.shell.drone_repository import DroneLedgerRepository, SqliteDroneLedgerRepository
 
+# 원장에 사전 텔레메트리 이력이 없을 때 적용하는 비상 기본값 (Fail-Safe Default: 0% 배터리)
+DEFAULT_FAILSAFE_BATTERY_PERCENT: int = 0
+
 
 class GeofenceService:
     """지오펜스 감찰 및 침범 시 EMERGENCY_RTH 원장 강제 적재 Shell 서비스."""
@@ -34,7 +37,7 @@ class GeofenceService:
             latest = self._repo.get_latest(req.drone_id)
             alt = latest.altitude if latest else 0.0
             spd = latest.speed if latest else 0.0
-            bat = latest.battery if latest else 50
+            bat = latest.battery if latest else DEFAULT_FAILSAFE_BATTERY_PERCENT
 
             breach_record = TelemetryRecord(
                 drone_id=req.drone_id,

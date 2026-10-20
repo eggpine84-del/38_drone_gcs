@@ -62,3 +62,53 @@ def test_3_dashboard_page_contains_dual_control_ui():
     assert "tactical-drawer-panel" in html
     assert "drawer-toggle-btn" in html
     assert "jog-pad-container" in html
+
+
+def test_4_move_command_uses_body_offset_ned_frame():
+    """MOVE 명령이 MAV_FRAME_BODY_OFFSET_NED 프레임 및 위치 마스크로 정밀 송출되는지 검증."""
+    from unittest.mock import MagicMock
+    from src.features.dashboard.shell.flight_command_service import FlightCommandService
+    from src.features.dashboard.shell.command_dto import DroneCommandIn
+
+    mock_conn = MagicMock()
+    mock_conn.target_system = 1
+    mock_conn.target_component = 1
+    service = FlightCommandService(connection=mock_conn)
+
+    # 상승 1m 명령 (z = -1.0)
+    cmd = DroneCommandIn(drone_id="DRONE-01", command="MOVE", param1=0.0, param2=0.0, param3=-1.0)
+    service.dispatch_command(cmd)
+
+    calls = mock_conn.mav.set_position_target_local_ned_send.call_args_list
+    assert len(calls) >= 1
+    # call args: (time_boot_ms, target_system, target_component, coordinate_frame, type_mask, x, y, z, vx, vy, vz, afx, afy, afz, yaw, yaw_rate)
+    args = calls[0].args
+    # MAV_FRAME_BODY_OFFSET_NED (9)
+    assert args[3] == 9, "좌표 프레임은 MAV_FRAME_BODY_OFFSET_NED(9)여야 합니다."
+    # type_mask: 위치만 제어 (0b0000111111111000 = 0x0DF8 = 3576)
+    assert args[4] == 0b0000111111111000, "타입 마스크는 위치 오프셋 전용(0b0000111111111000)이어야 합니다."
+    assert args[7] == -1.0, "z 위치 오프셋이 -1.0m이어야 합니다."
+
+
+def test_5_drop_command_dispatches_gripper_release():
+    """DROP 명령이 MAV_CMD_DO_GRIPPER(211) 명령으로 MAVLink 송출되는지 검증."""
+    from unittest.mock import MagicMock
+    from src.features.dashboard.shell.flight_command_service import FlightCommandService
+    from src.features.dashboard.shell.command_dto import DroneCommandIn
+
+    mock_conn = MagicMock()
+    mock_conn.target_system = 1
+    mock_conn.target_component = 1
+    service = FlightCommandService(connection=mock_conn)
+
+    drop_cmd = DroneCommandIn(drone_id="DRONE-01", command="DROP")
+    res = service.dispatch_command(drop_cmd)
+    assert res["sent"] is True
+
+    calls = mock_conn.mav.command_long_send.call_args_list
+    assert len(calls) >= 1
+    # call args: (target_system, target_component, command, confirmation, param1, param2, ...)
+    args = calls[0].args
+    assert args[2] == 211, "MAV_CMD_DO_GRIPPER(211)가 송출되어야 합니다."
+    assert args[5] == 0, "그리퍼 방출(action=0)이어야 합니다."
+

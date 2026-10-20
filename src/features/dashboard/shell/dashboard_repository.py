@@ -8,8 +8,12 @@ from typing import Any, Optional
 from src.engine.shell.db_adapter import execute_query
 
 
+# 클럭 오차 허용 한도 (미래 시간 역전 방어 상한선)
+MAX_FUTURE_CLOCK_SKEW_SECONDS: float = 5.0
+
+
 def _is_within_window(ts_str: str, max_age_seconds: float) -> bool:
-    """타임스탬프가 현재 시각 기준 max_age_seconds 초 이내인지 안전하게 판별."""
+    """타임스탬프가 현재 시각 기준 -5.0초 ~ max_age_seconds 초 이내인지 안전하게 판별."""
     if not ts_str:
         return False
     try:
@@ -18,11 +22,12 @@ def _is_within_window(ts_str: str, max_age_seconds: float) -> bool:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         age_seconds = (now - dt).total_seconds()
-        # 시간 역전(-5초 이내)은 클럭 오차로 허용하고, max_age_seconds를 초과한 과거 데이터는 제외
-        return age_seconds <= max_age_seconds
-    except Exception:
-        # 형식 파싱 불가 시 보수적으로 활성 처리 (데이터 증발 방어)
-        return True
+        # 양방향 가드: 미래 시각 왜곡(-5초 초과) 또는 max_age_seconds 초과 과거 데이터는 제외
+        return -MAX_FUTURE_CLOCK_SKEW_SECONDS <= age_seconds <= max_age_seconds
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).debug("타임스탬프 파싱 불가(%s), 활성 목록에서 제외: %s", ts_str, str(exc))
+        return False
 
 
 def _resolve_effective_window(param_window: Optional[float]) -> Optional[float]:

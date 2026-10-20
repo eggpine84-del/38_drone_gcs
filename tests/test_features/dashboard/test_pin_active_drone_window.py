@@ -90,3 +90,29 @@ def test_pin_dashboard_repository_no_error_swallowing():
                 swallowed.append(f"L{node.lineno}")
     assert not swallowed, f"dashboard_repository 에러 삼키기 발견: {swallowed}"
 
+
+def test_pin_is_within_window_bidirectional_guard():
+    """_is_within_window가 5초 초과 미래 시각 및 비정형 타임스탬프를 거부(False)하는지 검증합니다."""
+    from src.features.dashboard.shell.dashboard_repository import _is_within_window
+    now = datetime.now(timezone.utc)
+
+    # 1. 정상 과거 10초 전 -> True
+    recent = (now - timedelta(seconds=10)).isoformat()
+    assert _is_within_window(recent, 60.0) is True
+
+    # 2. 70초 전 과거 -> False
+    past = (now - timedelta(seconds=70)).isoformat()
+    assert _is_within_window(past, 60.0) is False
+
+    # 3. 1초 미래 (정상 클럭 오차) -> True
+    slight_future = (now + timedelta(seconds=1)).isoformat()
+    assert _is_within_window(slight_future, 60.0) is True
+
+    # 4. 10초 초과 미래 시각 왜곡 패킷 -> False (Red 목표: 기존에는 음수 diff로 True 반환함)
+    far_future = (now + timedelta(seconds=100)).isoformat()
+    assert _is_within_window(far_future, 60.0) is False
+
+    # 5. 비정형 포맷 문자열 ('1005.0') -> False (Red 목표: 기존에는 Exception 시 True 반환함)
+    assert _is_within_window("1005.0", 60.0) is False
+
+

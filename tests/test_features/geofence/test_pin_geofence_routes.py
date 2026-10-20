@@ -71,3 +71,29 @@ def test_pin_geofence_dto_extra_fields_forbidden(client: TestClient):
     }
     response = client.post("/api/features/geofence/check", json=payload)
     assert response.status_code in (400, 422)
+
+
+def test_pin_geofence_breach_records_failsafe_zero_battery():
+    """침범 감지 시 사전 원장 이력이 없는 드론은 50% 날조 없이 0% 비상 기본값으로 기록되는지 검증 (Red)."""
+    from src.features.geofence.shell.geofence_service import GeofenceService
+    from src.features.geofence.shell.geofence_dto import GeofenceCheckRequest
+    from src.engine.shell.drone_repository import InMemoryDroneLedgerRepository
+
+    repo = InMemoryDroneLedgerRepository()
+    service = GeofenceService(repository=repo)
+
+    req = GeofenceCheckRequest(
+        drone_id="DRONE-NEW-BREACH",
+        latitude=37.5866,
+        longitude=126.9748,
+        allowed_polygon=[],
+        nfz_list=[{"name": "NFZ", "latitude": 37.5866, "longitude": 126.9748, "radius_meters": 500.0}],
+    )
+    res = service.check_and_enforce(req)
+    assert res["is_breached"] is True
+
+    record = repo.get_latest("DRONE-NEW-BREACH")
+    assert record is not None
+    # 50% 날조 없이 정확히 0% 기록 검증
+    assert record.battery == 0
+

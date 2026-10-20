@@ -95,3 +95,13 @@ def test_pin_mission_progress_calculation(client: TestClient):
     # 0번 인덱스 도착했으므로 다음 인덱스 1 전진 및 50% 진행률
     assert res_json["data"]["current_index"] == 1
     assert res_json["data"]["progress_pct"] == 50
+
+
+def test_pin_mission_service_uses_explicit_constants_when_no_latest():
+    """미션 서비스가 인라인 매직넘버 대신 명시적 기본 상수를 사용하는지 검증 (Red)."""
+    from src.features.mission.shell import mission_service
+
+    assert getattr(mission_service, "DEFAULT_MISSION_LATITUDE", None) == 37.5665
+    assert getattr(mission_service, "DEFAULT_MISSION_LONGITUDE", None) == 126.9780
+    assert getattr(mission_service, "DEFAULT_MISSION_BATTERY_PERCENT", None) == 100
+

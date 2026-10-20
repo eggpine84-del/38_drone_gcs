@@ -12,6 +12,11 @@ from src.features.mission.shell.mission_dto import CommandRequest, MissionProgre
 from src.engine.core.telemetry_record import TelemetryRecord
 from src.engine.shell.drone_repository import DroneLedgerRepository, SqliteDroneLedgerRepository
 
+# 원장에 사전 텔레메트리 이력이 없을 때 적용하는 기본 미션 기준값
+DEFAULT_MISSION_LATITUDE: float = 37.5665
+DEFAULT_MISSION_LONGITUDE: float = 126.9780
+DEFAULT_MISSION_BATTERY_PERCENT: int = 100
+
 
 class MissionService:
     """비행 명령 선행 검증 및 원장 상태 전이 적재 Shell 서비스."""
@@ -23,7 +28,7 @@ class MissionService:
         """선행 상태 검증 통과 시에만 명령을 하달하고 원장에 불변 기록."""
         latest = self._repo.get_latest(req.drone_id)
         current_status = latest.status if latest else "IDLE"
-        battery = latest.battery if latest else 100
+        battery = latest.battery if latest else DEFAULT_MISSION_BATTERY_PERCENT
 
         result = evaluate_command(
             current_status=current_status,
@@ -38,8 +43,8 @@ class MissionService:
 
         # 상태 전이 승인 시 원장에 감사 레코드 영구 적재 (Append-Only)
         now_iso = datetime.now(timezone.utc).isoformat()
-        lat = latest.latitude if latest else 37.5665
-        lon = latest.longitude if latest else 126.9780
+        lat = latest.latitude if latest else DEFAULT_MISSION_LATITUDE
+        lon = latest.longitude if latest else DEFAULT_MISSION_LONGITUDE
         alt = latest.altitude if latest else 0.0
         spd = latest.speed if latest else 0.0
 

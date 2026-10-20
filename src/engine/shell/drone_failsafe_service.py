@@ -11,6 +11,11 @@ from src.engine.core.failsafe_evaluator import evaluate_heartbeat_timeout
 from src.engine.core.telemetry_record import TelemetryRecord
 from src.engine.shell.drone_repository import DroneLedgerRepository
 
+# 원장에 사전 텔레메트리 이력이 없을 때 적용하는 기본 비상 페일세이프 기준값
+DEFAULT_FAILSAFE_LATITUDE: float = 37.5665
+DEFAULT_FAILSAFE_LONGITUDE: float = 126.9780
+DEFAULT_FAILSAFE_BATTERY_PERCENT: int = 100
+
 
 @dataclass(frozen=True)
 class FailsafeResult:
@@ -73,11 +78,11 @@ class DroneFailsafeService:
             )
 
         # 신규 EMERGENCY_RTH 강제 전이 레코드 원장 영구 적재
-        lat = latest_record.latitude if latest_record else 37.5665
-        lon = latest_record.longitude if latest_record else 126.9780
+        lat = latest_record.latitude if latest_record else DEFAULT_FAILSAFE_LATITUDE
+        lon = latest_record.longitude if latest_record else DEFAULT_FAILSAFE_LONGITUDE
         alt = latest_record.altitude if latest_record else 0.0
         spd = latest_record.speed if latest_record else 0.0
-        bat = latest_record.battery if latest_record else 100
+        bat = latest_record.battery if latest_record else DEFAULT_FAILSAFE_BATTERY_PERCENT
 
         rth_record = TelemetryRecord(
             drone_id=drone_id,

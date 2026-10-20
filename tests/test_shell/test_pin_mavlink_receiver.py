@@ -106,3 +106,18 @@ def test_pin_mavlink_receiver_no_error_swallowing():
                 swallowed.append(f"L{node.lineno}")
     assert not swallowed, f"mavlink receiver 에러 삼키기 발견: {swallowed}"
 
+
+def test_pin_mavlink_parser_core_battery_constant_fallback():
+    """mavlink parser core가 인라인 매직넘버 100 대신 DEFAULT_BATTERY_REMAINING_PERCENT 상수를 사용하는지 검증 (Red)."""
+    from src.engine.core import mavlink_parser_core
+
+    heartbeat = {"base_mode": 128, "custom_mode": 4}
+    gps = {"lat": 375665000, "lon": 1269780000, "relative_alt": 10000, "vx": 0, "vy": 0}
+    # 배터리 메시지 결손 시
+    payload = mavlink_parser_core.convert_mavlink_to_payload("DRONE-BAT-CONST", gps, heartbeat, battery_msg=None, timestamp="2026-10-20T00:00:00Z")
+    assert payload is not None
+    # 상수 선언 여부 검증
+    assert getattr(mavlink_parser_core, "DEFAULT_BATTERY_REMAINING_PERCENT", None) == 100
+
+
+

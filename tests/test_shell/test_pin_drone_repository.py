@@ -113,3 +113,12 @@ def test_pin_db_schema_no_error_swallowing():
                 swallowed.append(f"L{node.lineno}")
     assert not swallowed, f"db_schema 에러 삼키기 발견: {swallowed}"
 
+
+def test_pin_db_schema_no_dynamic_sql_in_migration():
+    """db_schema의 DDL 마이그레이션이 f-string 없이 정적 SQL로 작성되었는지 검증합니다."""
+    with open("src/engine/shell/db_schema.py", "r", encoding="utf-8") as f:
+        code = f.read()
+    assert "cur.execute(f\"" not in code, "cur.execute 내부에 f-string 사용이 금지됩니다."
+    assert "ALTER TABLE items ADD COLUMN description" in code, "정적 ALTER TABLE DDL이 명시되어야 합니다."
+
+

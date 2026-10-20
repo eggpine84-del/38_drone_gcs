@@ -17,6 +17,7 @@ CUSTOM_MODE_DISPATCH: Final[Mapping[int, DroneStatus]] = {
 }
 
 MAV_MODE_FLAG_SAFETY_ARMED: Final[int] = 128
+DEFAULT_BATTERY_REMAINING_PERCENT: Final[int] = 100
 
 
 def map_mavlink_mode_to_status(base_mode: int, custom_mode: int, altitude: float) -> DroneStatus:
@@ -95,9 +96,9 @@ def convert_mavlink_to_payload(
     speed = max(0.0, math.sqrt(vx * vx + vy * vy))
 
     # 6. 배터리 잔량 백분율 클램핑 (0 ~ 100)
-    raw_battery = 100
+    raw_battery = DEFAULT_BATTERY_REMAINING_PERCENT
     if battery_msg:
-        raw_battery = battery_msg.get("battery_remaining", 100)
+        raw_battery = battery_msg.get("battery_remaining", DEFAULT_BATTERY_REMAINING_PERCENT)
     battery = max(0, min(100, int(raw_battery)))
 
     # 7. 비행 상태 매핑

@@ -68,20 +68,20 @@
         </div>
         <div class="grid grid-cols-3 gap-1.5 text-center my-1">
           <div></div>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param1": 2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95">▲ 전진</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param1": 2.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">▲ 전진</button>
           <div></div>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param2": -2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95">◀ 좌</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "HOLD"}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-500/40 text-[10px] font-bold active:scale-95">정지</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param2": 2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95">우 ▶</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param2": -2.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">◀ 좌</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "HOLD"}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-500/40 text-[10px] font-bold active:scale-95 shadow-[0_0_10px_rgba(245,158,11,0.2)]">정지</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param2": 2.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">우 ▶</button>
           <div></div>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param1": -2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95">▼ 후진</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param1": -2.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2.5 rounded-lg bg-slate-800/80 hover:bg-cyan-950 hover:text-cyan-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">▼ 후진</button>
           <div></div>
         </div>
       </div>
       <!-- 고도 상승 / 하강 -->
       <div class="grid grid-cols-2 gap-2 mt-3 pt-2 border-t border-slate-800/60">
-        <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param3": -1.0}' hx-target="#flight-action-feedback" class="py-2 rounded-lg bg-slate-800/80 hover:bg-emerald-950 hover:text-emerald-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95">▲ 상승 (+1m)</button>
-        <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param3": 1.0}' hx-target="#flight-action-feedback" class="py-2 rounded-lg bg-slate-800/80 hover:bg-teal-950 hover:text-teal-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95">▼ 하강 (-1m)</button>
+        <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param3": -1.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="py-2 rounded-lg bg-slate-800/80 hover:bg-emerald-950 hover:text-emerald-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95 shadow-[0_0_10px_rgba(16,185,129,0.2)]">▲ 상승 (+1m)</button>
+        <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "MOVE", "param3": 1.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="py-2 rounded-lg bg-slate-800/80 hover:bg-teal-950 hover:text-teal-400 text-slate-300 font-mono text-xs font-bold transition active:scale-95 shadow-[0_0_10px_rgba(20,184,166,0.2)]">▼ 하강 (-1m)</button>
       </div>
     </div>
 
@@ -93,10 +93,10 @@
           <span class="text-[10px] text-cyan-400 font-normal">2축 틸트</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GIMBAL", "param1": -90.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition active:scale-95">수직 하향 (-90°)</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GIMBAL", "param1": 0.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition active:scale-95">수평 정면 (0°)</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GIMBAL", "param1": 1.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition active:scale-95">사진 촬영 (Shutter)</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GIMBAL", "param1": 2.0}' hx-target="#flight-action-feedback" class="p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition active:scale-95">동영상 녹화</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GIMBAL", "param1": -90.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(100,116,139,0.2)]">수직 하향 (-90°)</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GIMBAL", "param1": 0.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(100,116,139,0.2)]">수평 정면 (0°)</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GIMBAL", "param1": 1.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(100,116,139,0.2)]">사진 촬영 (Shutter)</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GIMBAL", "param1": 2.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(100,116,139,0.2)]">동영상 녹화</button>
         </div>
       </div>
       <div class="mt-3 text-[10px] font-mono text-slate-500 text-center">MAVLink DO_MOUNT_CONTROL</div>
@@ -110,12 +110,12 @@
           <span class="text-[10px] text-cyan-400 font-normal">ArduPilot</span>
         </div>
         <div class="grid grid-cols-3 gap-2">
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "HOLD"}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95">LOITER</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GUIDED"}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95">GUIDED</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "LAND"}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95">LAND</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "RTL"}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95">RTL</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "SET_MODE", "param1": 1.0}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95">AUTO</button>
-          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "SET_MODE", "param1": 7.0}' hx-target="#flight-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95">CIRCLE</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "HOLD"}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">LOITER</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "GUIDED"}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">GUIDED</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "LAND"}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">LAND</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "RTL"}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">RTL</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "SET_MODE", "param1": 1.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">AUTO</button>
+          <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "SET_MODE", "param1": 7.0}' hx-disabled-elt="this" hx-target="#tactical-action-feedback" class="p-2 rounded-lg bg-slate-800/70 hover:bg-cyan-950 text-slate-300 font-mono text-xs transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.2)]">CIRCLE</button>
         </div>
       </div>
       <div class="mt-3 text-[10px] font-mono text-slate-500 text-center">원클릭 모드 강제 변경</div>
@@ -128,12 +128,12 @@
           <span>특수 임무 & 비상 안전</span>
           <span class="text-[10px] text-rose-400 font-normal">비상 제어</span>
         </div>
-        <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "DROP"}' hx-target="#flight-action-feedback" class="w-full py-2.5 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold hover:bg-amber-900/60 transition active:scale-95">
+        <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "DROP"}' hx-disabled-elt="this" hx-target="#flight-action-feedback" class="w-full py-2.5 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold hover:bg-amber-900/60 transition active:scale-95 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
           물품 투하 (Gripper Release)
         </button>
       </div>
       <div class="pt-2 border-t border-red-900/40">
-        <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "KILL"}' hx-confirm="경고: 공중에서 모터를 즉시 강제 차단합니다! 추락 위험이 있습니다. 계속하시겠습니까?" hx-target="#flight-action-feedback" class="w-full py-2.5 rounded-lg bg-red-950/80 border border-red-500 text-red-300 font-mono text-xs font-bold hover:bg-red-900 active:scale-95 transition shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+        <button hx-post="/api/features/dashboard/command" hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "KILL"}' hx-confirm="경고: 공중에서 모터를 즉시 강제 차단합니다! 추락 위험이 있습니다. 계속하시겠습니까?" hx-disabled-elt="this" hx-target="#flight-action-feedback" class="w-full py-2.5 rounded-lg bg-red-950/80 border border-red-500 text-red-300 font-mono text-xs font-bold hover:bg-red-900 active:scale-95 transition shadow-[0_0_15px_rgba(239,68,68,0.3)]">
           긴급 모터 차단 (Emergency Kill)
         </button>
       </div>
@@ -142,8 +142,8 @@
 
   <!-- 서랍 하단 푸터 상태바 -->
   <div class="px-4 py-2 border-t border-slate-800/80 bg-slate-950/80 flex items-center justify-between text-xs font-mono text-slate-400">
-    <span>MAVLink 2.0 비행제어 프로토콜</span>
-    <span class="text-cyan-400 font-bold">15종 통합 제어 준비완료</span>
+    <span>MAVLink 2.0 정밀 상대위치 제어 (오버슈트 0%)</span>
+    <span id="tactical-action-feedback" class="text-cyan-400 font-bold">15종 통합 제어 준비완료</span>
   </div>
 </section>
 
@@ -176,6 +176,7 @@
     <!-- 1. 시동 (Arm) -->
     <button hx-post="/api/features/dashboard/command"
             hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "ARM", "param1": 1.0}'
+            hx-disabled-elt="this"
             hx-target="#flight-action-feedback"
             class="btn-action-arm flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-mono text-xs font-bold hover:bg-emerald-900/80 active:scale-95 transition shadow-[0_0_10px_rgba(16,185,129,0.2)]">
       <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
@@ -187,6 +188,7 @@
     <!-- 2. 10m 이륙 (Takeoff) -->
     <button hx-post="/api/features/dashboard/command"
             hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "TAKEOFF", "param1": 10.0}'
+            hx-disabled-elt="this"
             hx-target="#flight-action-feedback"
             class="btn-action-takeoff flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-900/90 active:scale-95 transition shadow-[0_0_10px_rgba(6,182,212,0.2)]">
       <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
@@ -198,6 +200,7 @@
     <!-- 3. 제자리 공중 정지 (Hold) -->
     <button hx-post="/api/features/dashboard/command"
             hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "HOLD"}'
+            hx-disabled-elt="this"
             hx-target="#flight-action-feedback"
             class="btn-action-hold flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-950/80 border border-amber-500/50 text-amber-300 font-mono text-xs font-bold hover:bg-amber-900/80 active:scale-95 transition shadow-[0_0_10px_rgba(245,158,11,0.2)]">
       <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
@@ -209,6 +212,7 @@
     <!-- 4. 원점 복귀 (RTL) -->
     <button hx-post="/api/features/dashboard/command"
             hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "RTL"}'
+            hx-disabled-elt="this"
             hx-target="#flight-action-feedback"
             class="btn-action-rtl flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-950/80 border border-indigo-500/50 text-indigo-300 font-mono text-xs font-bold hover:bg-indigo-900/80 active:scale-95 transition shadow-[0_0_10px_rgba(99,102,241,0.2)]">
       <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
@@ -220,6 +224,7 @@
     <!-- 5. 현위치 착륙 (Land) -->
     <button hx-post="/api/features/dashboard/command"
             hx-vals='{"drone_id": "{{ active_drone_id }}", "command": "LAND"}'
+            hx-disabled-elt="this"
             hx-target="#flight-action-feedback"
             class="btn-action-land flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-teal-950/80 border border-teal-500/50 text-teal-300 font-mono text-xs font-bold hover:bg-teal-900/80 active:scale-95 transition shadow-[0_0_10px_rgba(20,184,166,0.2)]">
       <svg class="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="2">
