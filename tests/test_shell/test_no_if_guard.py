@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# [파일명]: test_no_if_guard.py (토발즈 No-If 아키텍처 가드)
+# [파일명]: test_no_if_guard.py (Table-Driven Flat 아키텍처 가드)
 # [원칙] 1. elif 분기 체인 영구 금지 | 2. 중첩 if(Nested If) 금지 | 3. Table-Driven Dispatch 강제
 # [SYSTEM] Senior Staff Engineer (Google/Amazon) - Anti-Spaghetti AST Architecture Guard.
 import ast
@@ -59,7 +59,7 @@ def test_no_spaghetti_if_architecture_guard():
                                 )
 
     assert not violations, (
-        f"[토발즈 아키텍처 헌법 위반: if문 스파게티 감지 ({len(violations)}건)]\n"
+        f"[Table-Driven Flat 아키텍처 헌법 위반: if문 스파게티 감지 ({len(violations)}건)]\n"
         + "\n".join(violations) + "\n\n"
         + "철칙: 3개 이상의 분기는 무조건 Table-Driven Dispatch(딕셔너리 매핑)로 평평하게(Flat) 구현하세요."
     )
