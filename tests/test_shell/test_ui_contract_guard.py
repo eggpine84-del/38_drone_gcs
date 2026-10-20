@@ -35,15 +35,16 @@ def client():
 
 
 def _find_template_dirs() -> list[str]:
-    """프로젝트 내 존재하는 모든 템플릿 디렉터리(전역 + 피처별 수직 슬라이스)를 누락 없이 합집합 탐색."""
-    candidates = ["src/service/shell/templates", "src/templates", "templates"]
-    found = [os.path.normpath(d) for d in candidates if os.path.exists(d)]
-    if os.path.exists("src"):
-        for root, dirs, _ in os.walk("src"):
-            if "templates" in dirs:
-                t_path = os.path.normpath(os.path.join(root, "templates"))
-                if t_path not in found:
-                    found.append(t_path)
+    """폴더명(templates, views, 피처 직속 등)에 무관하게 .html 파일이 존재하는 모든 디렉터리를 자동 탐색."""
+    found: list[str] = []
+    for search_root in ("src", "templates"):
+        if not os.path.exists(search_root):
+            continue
+        for root, _, files in os.walk(search_root):
+            if any(f.endswith(".html") for f in files):
+                norm_root = os.path.normpath(root)
+                if norm_root not in found:
+                    found.append(norm_root)
     return found
 
 
