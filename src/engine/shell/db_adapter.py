@@ -4,24 +4,42 @@
 # [SYSTEM] Senior Staff Engineer (Google/Amazon) - Safe, Readable, Scalable Code.
 import os
 import sys
+import tempfile
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-# [1. 경로 헌법 구역]: 운영 DB 기본 경로 및 환경변수 오버라이드
+# [1. 경로 헌법 구역]: 운영 DB 기본 경로 및 비정규 테스트 차단 샌드박스
 PROD_DB_PATH = os.path.join("data", "db", "app.db")
+_TEST_MODULES = ("pytest", "unittest", "fastapi.testclient", "starlette.testclient")
+_FALLBACK_SANDBOX_DB = os.path.join(tempfile.gettempdir(), "pytest_sandbox_fallback.db")
+
+
+def _is_test_mode() -> bool:
+    """pytest, unittest, TestClient 단독 호출 등 모든 비정규 테스트 실행을 감지합니다."""
+    if os.getenv("APP_ENV") == "test":
+        return True
+    return any(mod in sys.modules for mod in _TEST_MODULES)
+
+
+def _clean_sqlite_path(raw_path: str) -> str:
+    """sqlite:/// URL 접두사를 순수 파일 시스템 경로로 정규화."""
+    prefix = "sqlite:///"
+    is_url = raw_path.startswith(prefix)
+    return raw_path[len(prefix):] if is_url else raw_path
 
 
 def get_active_db_path() -> str:
     """테스트/운영 환경 감지 기반 활성 DB 경로 반환 (테스트 중 운영 DB 접근 원천 차단)."""
-    # 1. 명시적 지정 경로 최우선 (테스트 임시 샌드박스 등)
-    env_db = os.getenv("APP_DB_PATH")
-    if env_db:
-        return env_db
-    # 2. 테스트 환경 감지 시 운영 DB 차단 및 인메모리 격리
-    if os.getenv("APP_ENV") == "test" or "pytest" in sys.modules:
-        return ":memory:"
-    # 3. 실제 운영 경로 반환
-    return PROD_DB_PATH
+    # 1. 일반 운영 환경일 때는 운영 DB 경로 반환
+    if not _is_test_mode():
+        return os.getenv("APP_DB_PATH") or PROD_DB_PATH
+
+    # 2. 테스트 환경일 때는 어떠한 경우에도 운영 DB 접근 금지 (강제 임시 샌드박스 격리)
+    raw_env = os.getenv("APP_DB_PATH") or os.getenv("TEST_DB_PATH") or os.getenv("DATABASE_URL")
+    candidate = _clean_sqlite_path(raw_env) if raw_env else ""
+    is_safe = bool(candidate and os.path.normpath(candidate) != os.path.normpath(PROD_DB_PATH))
+    return candidate if is_safe else _FALLBACK_SANDBOX_DB
+
 
 
 DEFAULT_DB_PATH = PROD_DB_PATH
@@ -31,8 +49,12 @@ DEFAULT_DB_PATH = PROD_DB_PATH
 def get_db_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     """SQLite 3대 헌법(WAL, foreign_keys=ON, busy_timeout=5000) 적용 커넥션 반환."""
     # 테스트 환경 안전 가드
-    if os.getenv("APP_ENV") == "test" or "pytest" in sys.modules:
-        target_path = get_active_db_path() if (db_path is None or db_path == PROD_DB_PATH) else db_path
+    if _is_test_mode():
+        target_path = (
+            get_active_db_path()
+            if (db_path is None or os.path.normpath(db_path) == os.path.normpath(PROD_DB_PATH))
+            else db_path
+        )
     else:
         target_path = db_path if db_path is not None else get_active_db_path()
 
