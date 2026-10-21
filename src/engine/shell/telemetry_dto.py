@@ -1,15 +1,17 @@
-# -*- coding: utf-8 -*-
 """텔레메트리 입력 규격 DTO (Telemetry Input DTO).
 
 [09 백본 표준] B2 규격 및 화이트리스트 강제(extra='forbid').
 미정의 필드 유입 시 즉시 422 Fail-Fast 차단.
 """
+
 from pydantic import BaseModel, ConfigDict, Field
+
 from src.engine.core.drone_state_machine import DroneStatus
 
 
 class TelemetryIn(BaseModel):
     """단발 텔레메트리 수신 화이트리스트 규격 DTO."""
+
     model_config = ConfigDict(extra="forbid")
 
     drone_id: str = Field(..., min_length=1, description="드론 고유 식별자")

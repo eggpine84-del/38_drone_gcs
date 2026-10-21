@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
 # [파일명]: main.py (드론 GCS 웹서버 엔트리포인트 - 순수 오케스트레이터)
 # [원칙] 1. 단일 책임(SRP) 및 120줄 이하 엄수 | 2. 5대 라우터 수집 및 수명주기 전담 | 3. 비즈니스 로직 0건
 # [SYSTEM] Senior Staff Engineer (Google/Amazon) - Safe, Readable, Scalable Code.
 import asyncio
-from contextlib import asynccontextmanager
 import logging
 import os
-import sys
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from src.engine.shell.failsafe_routes import router as failsafe_router
 from src.engine.shell.telemetry_routes import router as telemetry_router
 from src.features.dashboard.shell.dashboard_routes import router as dashboard_router
+from src.features.dashboard.shell.flight_command_service import get_flight_command_service
 from src.features.geofence.shell.geofence_routes import router as geofence_router
 from src.features.mission.shell.mission_routes import router as mission_router
 
@@ -66,7 +65,6 @@ async def lifespan(app: FastAPI):
             )
 
         # 활성 MAVLink 통신 소켓을 웹 비행 제어 명령 서비스에 직결
-        from src.features.dashboard.shell.flight_command_service import get_flight_command_service
         get_flight_command_service().set_connection(receiver.connection)
 
         async def _mavlink_worker():
@@ -84,7 +82,6 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        from src.features.dashboard.shell.flight_command_service import get_flight_command_service
         get_flight_command_service().set_connection(None)
 
         if worker_task:
@@ -113,6 +110,6 @@ app.include_router(failsafe_router)
 # [4. 웹 서버 실행 엔트리포인트]
 if __name__ == "__main__":
     import uvicorn
+
     logger.info("Drone-GCS Uvicorn 웹 서버 가동")
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
-

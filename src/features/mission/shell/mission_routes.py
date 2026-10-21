@@ -1,11 +1,14 @@
-# -*- coding: utf-8 -*-
 # [파일명]: mission_routes.py
 # [목적]: 비행 명령 제어 및 웨이포인트 진행률 엔드포인트 (09 백본 B1 단일 봉투 규격)
 from typing import Any
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from src.features.mission.shell.mission_dto import CommandRequest, MissionProgressRequest
+from src.features.mission.shell.mission_dto import (
+    CommandRequest,
+    MissionProgressRequest,
+)
 from src.features.mission.shell.mission_service import MissionService
 
 router = APIRouter(prefix="/api/features/mission", tags=["Mission"])

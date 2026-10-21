@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """페일세이프 판정 순수 코어 (Failsafe Evaluator Core).
 
 CONSTITUTION.md 제1조 3항(위험 격리 및 강제 안전권한) 및 제4조 2항(복합 비상 프로토콜).
 외부 I/O 0건, 시간 직접 호출 0건 (Shell 주입 원칙).
 """
+
 from dataclasses import dataclass
 from typing import Final
 
@@ -15,6 +15,7 @@ DEFAULT_TIMEOUT_SECONDS: Final[float] = 3.0
 @dataclass(frozen=True)
 class FailsafeEvaluation:
     """페일세이프 판정 결과 봉투 (Pure Output)."""
+
     is_timeout: bool
     elapsed_seconds: float
     next_status: DroneStatus

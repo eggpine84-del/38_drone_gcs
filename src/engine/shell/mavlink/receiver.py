@@ -1,20 +1,22 @@
-# -*- coding: utf-8 -*-
 """MAVLink 통신 수신 셸 어댑터 (MAVLink Receiver Shell Adapter).
 
 하드웨어(Serial / UDP) I/O로부터 MAVLink 2.0 패킷을 수신하고,
 순수 코어 파서(mavlink_parser_core)를 통해 검증 후 DroneGCSService 단일 원장에 주입합니다.
 """
-from datetime import datetime, timezone
+
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from src.engine.core.mavlink_parser_core import (
     convert_mavlink_to_payload,
     resolve_drone_id_from_sysid,
 )
 from src.engine.shell.drone_gcs_service import DroneGCSService
-from src.engine.shell.mavlink.stream_requester import send_gcs_heartbeat_and_stream_request
+from src.engine.shell.mavlink.stream_requester import (
+    send_gcs_heartbeat_and_stream_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,7 @@ class MAVLinkReceiver:
         drone_id: str,
         service: DroneGCSService,
         connection: Any = None,
-        connection_string: Optional[str] = None,
+        connection_string: str | None = None,
         auto_detect_sysid: bool = True,
     ) -> None:
         """MAVLink 수신기 초기화.
@@ -51,14 +53,14 @@ class MAVLinkReceiver:
         self._heartbeat_interval: float = 1.0
 
         # 기체별 최신 상태 격리 캐시 (기체간 상태 섞임 방지)
-        self._drone_heartbeats: Dict[str, Dict[str, Any]] = {}
-        self._drone_batteries: Dict[str, Dict[str, Any]] = {}
-        self._drone_last_gps: Dict[str, Dict[str, Any]] = {}
-        self._drone_last_ingest_time: Dict[str, float] = {}
+        self._drone_heartbeats: dict[str, dict[str, Any]] = {}
+        self._drone_batteries: dict[str, dict[str, Any]] = {}
+        self._drone_last_gps: dict[str, dict[str, Any]] = {}
+        self._drone_last_ingest_time: dict[str, float] = {}
 
         # 하위 호환 단일 캐시
-        self._last_heartbeat: Optional[Dict[str, Any]] = None
-        self._last_battery: Optional[Dict[str, Any]] = None
+        self._last_heartbeat: dict[str, Any] | None = None
+        self._last_battery: dict[str, Any] | None = None
 
         if self._connection is None and self._connection_string:
             self._init_connection(self._connection_string)
@@ -77,12 +79,16 @@ class MAVLinkReceiver:
         """pymavlink 통신 소켓을 연결합니다."""
         try:
             from pymavlink import mavutil
+
             self._connection = mavutil.mavlink_connection(conn_str)
             self._is_connected = True
             logger.info("MAVLink 연결 성공: %s (기체: %s)", conn_str, self._drone_id)
             self._send_gcs_heartbeat_and_stream_request()
             try:
-                from src.features.dashboard.shell.flight_command_service import get_flight_command_service
+                from src.features.dashboard.shell.flight_command_service import (
+                    get_flight_command_service,
+                )
+
                 get_flight_command_service().set_connection(self._connection)
             except Exception as exc:
                 logger.debug("비행 명령 서비스 소켓 연결 등록 예외: %s", str(exc))
@@ -112,18 +118,25 @@ class MAVLinkReceiver:
                 logger.debug("소켓 close 예외 무시: %s", str(exc))
             self._connection = None
             try:
-                from src.features.dashboard.shell.flight_command_service import get_flight_command_service
+                from src.features.dashboard.shell.flight_command_service import (
+                    get_flight_command_service,
+                )
+
                 get_flight_command_service().set_connection(None)
             except Exception as exc:
                 logger.debug("비행 명령 서비스 소켓 해제 예외: %s", str(exc))
-            logger.warning("MAVLink 통신 단절 감지 - 재연결 대기 (기체: %s)", self._drone_id)
+            logger.warning(
+                "MAVLink 통신 단절 감지 - 재연결 대기 (기체: %s)", self._drone_id
+            )
 
     def _try_auto_reconnect(self) -> bool:
         """미연결 상태 시 재연결 쿨다운 검사 및 조용한 자동 재연결 시도 (Early Return Flat Guard)."""
         if self.is_connected:
             return True
         now = time.time()
-        if self._connection_string and (now - self._last_reconnect_attempt >= self._reconnect_interval):
+        if self._connection_string and (
+            now - self._last_reconnect_attempt >= self._reconnect_interval
+        ):
             self._last_reconnect_attempt = now
             self._init_connection(self._connection_string)
         return self.is_connected
@@ -134,10 +147,13 @@ class MAVLinkReceiver:
         self._drone_heartbeats[target_drone_id] = msg_dict
         last_gps = self._drone_last_gps.get(target_drone_id)
         now_ts = time.time()
-        if not (last_gps and (now_ts - self._drone_last_ingest_time.get(target_drone_id, 0.0) >= 1.0)):
+        if not (
+            last_gps
+            and (now_ts - self._drone_last_ingest_time.get(target_drone_id, 0.0) >= 1.0)
+        ):
             return 0
         bat = self._drone_batteries.get(target_drone_id, self._last_battery)
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
         payload = convert_mavlink_to_payload(
             drone_id=target_drone_id,
             gps_msg=last_gps,
@@ -163,7 +179,7 @@ class MAVLinkReceiver:
         if not hb:
             return 0
         bat = self._drone_batteries.get(target_drone_id, self._last_battery)
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
         payload = convert_mavlink_to_payload(
             drone_id=target_drone_id,
             gps_msg=msg_dict,
@@ -182,13 +198,20 @@ class MAVLinkReceiver:
         raw_text = msg_dict.get("text", "")
         if isinstance(raw_text, bytes):
             raw_text = raw_text.decode("utf-8", errors="ignore")
-        logger.warning("MAVLink FCU 상태 알림 [%s]: %s", target_drone_id, str(raw_text).strip())
+        logger.warning(
+            "MAVLink FCU 상태 알림 [%s]: %s", target_drone_id, str(raw_text).strip()
+        )
         return 0
 
     def _handle_command_ack(self, msg_dict: dict, target_drone_id: str) -> int:
         """COMMAND_ACK 명령 응답 로깅."""
         cmd_id, res_id = msg_dict.get("command", 0), msg_dict.get("result", 0)
-        logger.info("MAVLink 명령 응답 [%s]: command=%s, result=%s", target_drone_id, cmd_id, res_id)
+        logger.info(
+            "MAVLink 명령 응답 [%s]: command=%s, result=%s",
+            target_drone_id,
+            cmd_id,
+            res_id,
+        )
         return 0
 
     _MESSAGE_DISPATCH_TABLE = {
@@ -238,7 +261,12 @@ class MAVLinkReceiver:
                 handler = self._MESSAGE_DISPATCH_TABLE.get(msg_type)
                 if handler:
                     processed_count += handler(self, msg_dict, target_drone_id)
-            except (ConnectionError, BrokenPipeError, ConnectionResetError, OSError) as sock_err:
+            except (
+                ConnectionError,
+                BrokenPipeError,
+                ConnectionResetError,
+                OSError,
+            ) as sock_err:
                 logger.warning("MAVLink 소켓 에러 감지: %s", str(sock_err))
                 self._handle_disconnect()
                 break

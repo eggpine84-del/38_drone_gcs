@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
 """런타임 환경설정 단일 진실 원장 셸 (Runtime AppConfig Shell).
 
 .env 파일 및 OS 환경변수를 통합하여 불변 AppConfig 싱글톤을 제공합니다.
 """
-from dataclasses import dataclass
+
 import os
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
 
 from dotenv import dotenv_values
 
@@ -15,6 +16,7 @@ from src.engine.core.config_core import validate_config_invariants
 @dataclass(frozen=True)
 class AppConfig:
     """시스템 런타임 환경설정 불변 단일 진실 원장 (SSOT)."""
+
     app_env: str = "development"
     app_host: str = "0.0.0.0"
     app_port: int = 8000
@@ -49,7 +51,9 @@ def load_config_from_dict(env_map: Mapping[str, Any]) -> AppConfig:
         raise ValueError("유효하지 않은 포트 번호입니다 (정수 필수).")
 
     mavlink_enabled = _parse_bool(env_map.get("MAVLINK_ENABLED", False))
-    mavlink_conn = str(env_map.get("MAVLINK_CONNECTION_STRING", "udpin:0.0.0.0:14550")).strip()
+    mavlink_conn = str(
+        env_map.get("MAVLINK_CONNECTION_STRING", "udpin:0.0.0.0:14550")
+    ).strip()
 
     try:
         mavlink_baud = int(env_map.get("MAVLINK_BAUDRATE", 57600))
@@ -106,7 +110,7 @@ def load_config_from_dict(env_map: Mapping[str, Any]) -> AppConfig:
     )
 
 
-_CACHED_CONFIG: Optional[AppConfig] = None
+_CACHED_CONFIG: AppConfig | None = None
 
 
 def get_config() -> AppConfig:

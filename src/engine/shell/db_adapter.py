@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 # [파일명]: db_adapter.py (대장 템플릿 - 데이터베이스 어댑터 Shell용)
 # [원칙] 1. SQLite 3대 헌법(WAL/외래키/5초대기) | 2. 테스트 러너 감지 시 운영 DB 접근 100% 차단 | 3. 100% 멱등 DDL
 # [SYSTEM] Senior Staff Engineer (Google/Amazon) - Safe, Readable, Scalable Code.
 import os
+import sqlite3
 import sys
 import tempfile
-import sqlite3
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # [1. 경로 헌법 구역]: 운영 DB 기본 경로 및 비정규 테스트 차단 샌드박스
 PROD_DB_PATH = os.path.join("data", "db", "app.db")
@@ -25,7 +24,7 @@ def _clean_sqlite_path(raw_path: str) -> str:
     """sqlite:/// URL 접두사를 순수 파일 시스템 경로로 정규화."""
     prefix = "sqlite:///"
     is_url = raw_path.startswith(prefix)
-    return raw_path[len(prefix):] if is_url else raw_path
+    return raw_path[len(prefix) :] if is_url else raw_path
 
 
 def get_active_db_path() -> str:
@@ -35,24 +34,32 @@ def get_active_db_path() -> str:
         return os.getenv("APP_DB_PATH") or PROD_DB_PATH
 
     # 2. 테스트 환경일 때는 어떠한 경우에도 운영 DB 접근 금지 (강제 임시 샌드박스 격리)
-    raw_env = os.getenv("APP_DB_PATH") or os.getenv("TEST_DB_PATH") or os.getenv("DATABASE_URL")
+    raw_env = (
+        os.getenv("APP_DB_PATH")
+        or os.getenv("TEST_DB_PATH")
+        or os.getenv("DATABASE_URL")
+    )
     candidate = _clean_sqlite_path(raw_env) if raw_env else ""
-    is_safe = bool(candidate and os.path.normpath(candidate) != os.path.normpath(PROD_DB_PATH))
+    is_safe = bool(
+        candidate and os.path.normpath(candidate) != os.path.normpath(PROD_DB_PATH)
+    )
     return candidate if is_safe else _FALLBACK_SANDBOX_DB
-
 
 
 DEFAULT_DB_PATH = PROD_DB_PATH
 
 
 # [2. 커넥션 헌법 구역]: SQLite 3대 헌법 강제 커넥션 팩토리
-def get_db_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
+def get_db_connection(db_path: str | None = None) -> sqlite3.Connection:
     """SQLite 3대 헌법(WAL, foreign_keys=ON, busy_timeout=5000) 적용 커넥션 반환."""
     # 테스트 환경 안전 가드
     if _is_test_mode():
         target_path = (
             get_active_db_path()
-            if (db_path is None or os.path.normpath(db_path) == os.path.normpath(PROD_DB_PATH))
+            if (
+                db_path is None
+                or os.path.normpath(db_path) == os.path.normpath(PROD_DB_PATH)
+            )
             else db_path
         )
     else:
@@ -70,7 +77,12 @@ def get_db_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
 
 
 # [3. 범용 쿼리 헌법 구역]: 단 1줄 종결 + 100% 자원 자동 해제(Leak-Free) 2대 만능 헬퍼
-def execute_query(sql: str, params: tuple = (), db_path: Optional[str] = None, conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
+def execute_query(
+    sql: str,
+    params: tuple = (),
+    db_path: str | None = None,
+    conn: sqlite3.Connection | None = None,
+) -> list[dict[str, Any]]:
     """안전한 SELECT 조회 헬퍼 (100% 파라미터화 바인딩 & 커넥션 자동 회수)."""
     close_needed = False
     if conn is None:
@@ -85,7 +97,12 @@ def execute_query(sql: str, params: tuple = (), db_path: Optional[str] = None, c
             conn.close()
 
 
-def execute_command(sql: str, params: tuple = (), db_path: Optional[str] = None, conn: Optional[sqlite3.Connection] = None) -> int:
+def execute_command(
+    sql: str,
+    params: tuple = (),
+    db_path: str | None = None,
+    conn: sqlite3.Connection | None = None,
+) -> int:
     """안전한 INSERT/UPDATE/DELETE 헬퍼 (트랜잭션 커밋 & lastrowid/rowcount 반환 & 커넥션 자동 회수)."""
     close_needed = False
     if conn is None:
@@ -106,11 +123,18 @@ if __name__ == "__main__":
     test_db = "temp_boilerplate_test.db"
     try:
         # 순수 배관 동작 확인: 임시 테이블 생성 및 2대 만능 헬퍼 검증
-        execute_command("CREATE TABLE IF NOT EXISTS _test (id INTEGER PRIMARY KEY, val TEXT);", db_path=test_db)
-        row_id = execute_command("INSERT INTO _test (val) VALUES (?);", ("테스트_데이터",), db_path=test_db)
+        execute_command(
+            "CREATE TABLE IF NOT EXISTS _test (id INTEGER PRIMARY KEY, val TEXT);",
+            db_path=test_db,
+        )
+        row_id = execute_command(
+            "INSERT INTO _test (val) VALUES (?);", ("테스트_데이터",), db_path=test_db
+        )
         print(f"  -> execute_command 삽입 성공! (생성 ID: {row_id})")
 
-        rows = execute_query("SELECT * FROM _test WHERE id = ?;", (row_id,), db_path=test_db)
+        rows = execute_query(
+            "SELECT * FROM _test WHERE id = ?;", (row_id,), db_path=test_db
+        )
         assert len(rows) == 1 and rows[0]["val"] == "테스트_데이터", "단독 검증 실패"
         print(f"  -> execute_query 조회 성공! (가져온 데이터: {rows[0]['val']})")
 
@@ -118,4 +142,3 @@ if __name__ == "__main__":
     finally:
         if os.path.exists(test_db):
             os.remove(test_db)
-

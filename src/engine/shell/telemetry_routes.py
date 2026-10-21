@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
 """단발 텔레메트리 수신 라우터 (Telemetry Ingest Router).
 
 [09 백본 표준] B1 단일 봉투 규격 및 B2 DTO 살균 통신 계약 준수.
 0.001초 응답 SLA 보장.
 """
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from src.engine.shell.telemetry_dto import TelemetryIn
 from src.engine.shell.drone_gcs_service import DroneGCSService, IngestPayload
 from src.engine.shell.drone_repository import SqliteDroneLedgerRepository
+from src.engine.shell.telemetry_dto import TelemetryIn
 
 router = APIRouter(prefix="/api", tags=["telemetry"])
 

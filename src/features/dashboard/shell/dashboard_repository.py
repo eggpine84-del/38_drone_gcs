@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 # [파일명]: dashboard_repository.py
 # [목적]: 관제 대시보드 피처 전용 읽기 전용 쿼리 어댑터 (Zero-Mutation 원칙 준수)
 import os
 import sys
-from datetime import datetime, timezone
-from typing import Any, Optional
-from src.engine.shell.db_adapter import execute_query
+from datetime import UTC, datetime
+from typing import Any
 
+from src.engine.shell.db_adapter import execute_query
 
 # 클럭 오차 허용 한도 (미래 시간 역전 방어 상한선)
 MAX_FUTURE_CLOCK_SKEW_SECONDS: float = 5.0
@@ -18,19 +17,22 @@ def _is_within_window(ts_str: str, max_age_seconds: float) -> bool:
         return False
     try:
         dt = datetime.fromisoformat(ts_str)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         age_seconds = (now - dt).total_seconds()
         # 양방향 가드: 미래 시각 왜곡(-5초 초과) 또는 max_age_seconds 초과 과거 데이터는 제외
         return -MAX_FUTURE_CLOCK_SKEW_SECONDS <= age_seconds <= max_age_seconds
     except Exception as exc:
         import logging
-        logging.getLogger(__name__).debug("타임스탬프 파싱 불가(%s), 활성 목록에서 제외: %s", ts_str, str(exc))
+
+        logging.getLogger(__name__).debug(
+            "타임스탬프 파싱 불가(%s), 활성 목록에서 제외: %s", ts_str, str(exc)
+        )
         return False
 
 
-def _resolve_effective_window(param_window: Optional[float]) -> Optional[float]:
+def _resolve_effective_window(param_window: float | None) -> float | None:
     """우선순위(명시 파라미터 -> 환경변수 -> 실행환경 기본값)에 따라 실효 윈도우 초를 결정."""
     if param_window is not None:
         return param_window if param_window > 0.0 else None
@@ -43,7 +45,12 @@ def _resolve_effective_window(param_window: Optional[float]) -> Optional[float]:
             return val if val > 0.0 else None
         except ValueError as exc:
             import logging
-            logging.getLogger(__name__).debug("DASHBOARD_ACTIVE_WINDOW_SECONDS 파싱 실패(%s), 기본값 폴백: %s", env_window, str(exc))
+
+            logging.getLogger(__name__).debug(
+                "DASHBOARD_ACTIVE_WINDOW_SECONDS 파싱 실패(%s), 기본값 폴백: %s",
+                env_window,
+                str(exc),
+            )
 
     # 테스트 환경(pytest 구동 중이거나 APP_ENV == "test")일 때는 목업 테스트 호환을 위해 기본 무제한(None)
     if os.getenv("APP_ENV") == "test" or "pytest" in sys.modules:
@@ -54,8 +61,8 @@ def _resolve_effective_window(param_window: Optional[float]) -> Optional[float]:
 
 
 def get_all_active_drones_latest(
-    db_path: Optional[str] = None,
-    max_age_seconds: Optional[float] = None,
+    db_path: str | None = None,
+    max_age_seconds: float | None = None,
 ) -> list[dict[str, Any]]:
     """모든 등록 드론의 최신 텔레메트리 1건씩을 일괄 조회 (하트비트 윈도우 필터 적용)."""
     sql = (
@@ -88,11 +95,13 @@ def get_all_active_drones_latest(
 
         effective_window = _resolve_effective_window(max_age_seconds)
         if effective_window is not None:
-            return [r for r in all_records if _is_within_window(r["timestamp"], effective_window)]
+            return [
+                r
+                for r in all_records
+                if _is_within_window(r["timestamp"], effective_window)
+            ]
 
         return all_records
     except Exception:
         # 최초 기동 시 테이블 미존재 등의 경우 빈 리스트 안전 반환
         return []
-
-

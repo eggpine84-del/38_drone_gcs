@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """드론 관제 셸 서비스 오케스트레이터 (Drone GCS Service Shell).
 
 Pure Core(drone_state_machine)와 Shell 불변 원장(drone_repository)을 조율.
 선검증 후적재 파이프라인으로 실패 시 원장 오염 0% 보장.
 """
+
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 
 from src.engine.core.drone_state_machine import (
     DroneStatus,
@@ -19,6 +18,7 @@ from src.engine.shell.drone_repository import DroneLedgerRepository
 @dataclass(frozen=True)
 class IngestPayload:
     """수신된 텔레메트리 입력 페이로드."""
+
     drone_id: str
     latitude: float
     longitude: float
@@ -32,11 +32,12 @@ class IngestPayload:
 @dataclass(frozen=True)
 class IngestResult:
     """텔레메트리 수신 및 원장 적재 결과 봉투."""
+
     success: bool
-    record: Optional[TelemetryRecord]
+    record: TelemetryRecord | None
     is_failsafe_forced: bool
     reason: str
-    violations: Tuple[str, ...] = ()
+    violations: tuple[str, ...] = ()
 
 
 class DroneGCSService:
@@ -59,7 +60,9 @@ class DroneGCSService:
 
         # 2. 직전 비행 상태 조회 (Shell I/O)
         latest_record = self._repository.get_latest(payload.drone_id)
-        current_status = DroneStatus(latest_record.status) if latest_record else DroneStatus.IDLE
+        current_status = (
+            DroneStatus(latest_record.status) if latest_record else DroneStatus.IDLE
+        )
 
         # 3. Pure Core 검증 및 전이 판정 (외부 I/O 0건)
         snapshot = TelemetrySnapshot(
@@ -106,10 +109,12 @@ class DroneGCSService:
             violations=(),
         )
 
-    def get_latest_telemetry(self, drone_id: str) -> Optional[TelemetryRecord]:
+    def get_latest_telemetry(self, drone_id: str) -> TelemetryRecord | None:
         """특정 드론의 가장 최신 텔레메트리 원장을 조회합니다."""
         return self._repository.get_latest(drone_id)
 
-    def get_flight_history(self, drone_id: str, limit: int = 50) -> List[TelemetryRecord]:
+    def get_flight_history(
+        self, drone_id: str, limit: int = 50
+    ) -> list[TelemetryRecord]:
         """특정 드론의 비행 이력을 순차 조회합니다."""
         return self._repository.list_by_drone(drone_id, limit=limit)

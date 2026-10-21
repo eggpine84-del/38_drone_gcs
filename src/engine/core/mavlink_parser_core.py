@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
 """MAVLink 바이너리 패킷 순수 코어 파서 (MAVLink Parser Pure Core).
 
 FCIS 헌법 100% 준수: 외부 I/O 0건, 부작용(Side-Effect) 0건, 0.001초 결정론적 연산.
 MAVLink 원시 정수 필드를 GCS 도메인 모델(IngestPayload)로 변환.
 """
+
 import math
-from typing import Any, Dict, Final, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Final
 
 from src.engine.core.drone_state_machine import DroneStatus
 from src.engine.shell.drone_gcs_service import IngestPayload
@@ -13,14 +14,16 @@ from src.engine.shell.drone_gcs_service import IngestPayload
 # Table-Driven Dispatch: ArduPilot/PX4 커스텀 모드 매핑 테이블
 CUSTOM_MODE_DISPATCH: Final[Mapping[int, DroneStatus]] = {
     6: DroneStatus.EMERGENCY_RTH,  # ArduPilot Copter RTL
-    9: DroneStatus.LANDING,        # ArduPilot Copter LAND
+    9: DroneStatus.LANDING,  # ArduPilot Copter LAND
 }
 
 MAV_MODE_FLAG_SAFETY_ARMED: Final[int] = 128
 DEFAULT_BATTERY_REMAINING_PERCENT: Final[int] = 100
 
 
-def map_mavlink_mode_to_status(base_mode: int, custom_mode: int, altitude: float) -> DroneStatus:
+def map_mavlink_mode_to_status(
+    base_mode: int, custom_mode: int, altitude: float
+) -> DroneStatus:
     """MAVLink 모드 플래그를 GCS 공인 비행 상태로 매핑합니다.
 
     Args:
@@ -48,11 +51,11 @@ def map_mavlink_mode_to_status(base_mode: int, custom_mode: int, altitude: float
 
 def convert_mavlink_to_payload(
     drone_id: str,
-    gps_msg: Dict[str, Any],
-    heartbeat_msg: Dict[str, Any],
-    battery_msg: Optional[Dict[str, Any]],
+    gps_msg: dict[str, Any],
+    heartbeat_msg: dict[str, Any],
+    battery_msg: dict[str, Any] | None,
     timestamp: str,
-) -> Optional[IngestPayload]:
+) -> IngestPayload | None:
     """MAVLink 메시지 세트를 GCS 단일 진실 원장 규격(IngestPayload)으로 변환합니다.
 
     Args:
@@ -98,7 +101,9 @@ def convert_mavlink_to_payload(
     # 6. 배터리 잔량 백분율 클램핑 (0 ~ 100)
     raw_battery = DEFAULT_BATTERY_REMAINING_PERCENT
     if battery_msg:
-        raw_battery = battery_msg.get("battery_remaining", DEFAULT_BATTERY_REMAINING_PERCENT)
+        raw_battery = battery_msg.get(
+            "battery_remaining", DEFAULT_BATTERY_REMAINING_PERCENT
+        )
     battery = max(0, min(100, int(raw_battery)))
 
     # 7. 비행 상태 매핑
@@ -128,14 +133,16 @@ def resolve_drone_id_from_sysid(src_system: int, default_prefix: str = "DRONE") 
     Returns:
         str: 2자리 제로 패딩된 기체 식별자 (예: 'DRONE-01'). 비정상 수치 시 'DRONE-UNKNOWN'.
     """
-    prefix = default_prefix.strip() if default_prefix and default_prefix.strip() else "DRONE"
+    prefix = (
+        default_prefix.strip() if default_prefix and default_prefix.strip() else "DRONE"
+    )
     if not isinstance(src_system, int) or src_system < 1 or src_system > 255:
         return f"{prefix}-UNKNOWN"
     return f"{prefix}-{src_system:02d}"
 
 
 def parse_connection_strings_core(
-    raw_conns: Optional[str], default_conn: str = "udpin:0.0.0.0:14550"
+    raw_conns: str | None, default_conn: str = "udpin:0.0.0.0:14550"
 ) -> list[str]:
     """쉼표/세미콜론으로 구분된 다중 연결 문자열을 파싱, 살균 및 중복 제거합니다.
 
@@ -149,7 +156,9 @@ def parse_connection_strings_core(
     if not raw_conns or not str(raw_conns).strip():
         return [default_conn.strip()]
 
-    tokens = [t.strip() for t in str(raw_conns).replace(";", ",").split(",") if t.strip()]
+    tokens = [
+        t.strip() for t in str(raw_conns).replace(";", ",").split(",") if t.strip()
+    ]
 
     # 중복 제거 (순서 보존)
     seen = set()
@@ -163,7 +172,7 @@ def parse_connection_strings_core(
 
 
 def resolve_active_drone_id(
-    available_drones: Optional[list[str]],
+    available_drones: list[str] | None,
     default_fallback: str = "DRONE-01",
 ) -> str:
     """원장에 등록된 가용 기체 목록으로부터 현재 조종 대상 기체 ID를 결정론적으로 선출합니다.
@@ -177,13 +186,19 @@ def resolve_active_drone_id(
     """
     # 1. Guard Clause: 가용 기체 리스트가 없거나 유효하지 않으면 폴백 조기 반환
     if not (available_drones and isinstance(available_drones, (list, tuple))):
-        return default_fallback.strip() if default_fallback and default_fallback.strip() else "DRONE-01"
+        return (
+            default_fallback.strip()
+            if default_fallback and default_fallback.strip()
+            else "DRONE-01"
+        )
 
     valid_ids = [d.strip() for d in available_drones if d and str(d).strip()]
     if valid_ids:
         return valid_ids[0]
 
     # 2. 폴백 반환 및 빈값 가드
-    return default_fallback.strip() if default_fallback and default_fallback.strip() else "DRONE-01"
-
-
+    return (
+        default_fallback.strip()
+        if default_fallback and default_fallback.strip()
+        else "DRONE-01"
+    )

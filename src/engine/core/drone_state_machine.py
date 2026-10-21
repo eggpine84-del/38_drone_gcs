@@ -1,16 +1,17 @@
-# -*- coding: utf-8 -*-
 """드론 관제 순수 코어 상태머신 (DroneGCS Core).
 
 CONSTITUTION.md 4대 공리 및 3대 금기를 기계적으로 강제하는 순수 결정론적 상태 전이 엔진.
 외부 I/O 0건, 부작용(Side-Effect) 0건, 0.001초 연산 보장.
 """
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import Final, FrozenSet, Tuple
+from typing import Final
 
 
 class DroneStatus(str, Enum):
     """드론 7대 공인 비행 상태."""
+
     IDLE = "IDLE"
     ARMED = "ARMED"
     TAKEOFF = "TAKEOFF"
@@ -23,6 +24,7 @@ class DroneStatus(str, Enum):
 @dataclass(frozen=True)
 class TelemetrySnapshot:
     """순수 텔레메트리 스냅샷 (Pure Input)."""
+
     battery: int
     altitude: float
     latitude: float
@@ -33,22 +35,31 @@ class TelemetrySnapshot:
 @dataclass(frozen=True)
 class TransitionResult:
     """상태 전이 판정 결과 봉투 (Pure Output)."""
+
     success: bool
     next_status: DroneStatus
     is_failsafe_forced: bool
     reason: str
-    violations: Tuple[str, ...] = ()
+    violations: tuple[str, ...] = ()
 
 
 # Table-Driven Dispatch: 상태별 허용된 다음 상태 매핑 테이블 (공리 2: 단방향 상태 전이)
-ALLOWED_TRANSITIONS: Final[dict[DroneStatus, FrozenSet[DroneStatus]]] = {
+ALLOWED_TRANSITIONS: Final[dict[DroneStatus, frozenset[DroneStatus]]] = {
     DroneStatus.IDLE: frozenset({DroneStatus.ARMED}),
-    DroneStatus.ARMED: frozenset({DroneStatus.TAKEOFF, DroneStatus.IN_FLIGHT, DroneStatus.IDLE}),
-    DroneStatus.TAKEOFF: frozenset({DroneStatus.IN_FLIGHT, DroneStatus.LANDING, DroneStatus.EMERGENCY_RTH}),
+    DroneStatus.ARMED: frozenset(
+        {DroneStatus.TAKEOFF, DroneStatus.IN_FLIGHT, DroneStatus.IDLE}
+    ),
+    DroneStatus.TAKEOFF: frozenset(
+        {DroneStatus.IN_FLIGHT, DroneStatus.LANDING, DroneStatus.EMERGENCY_RTH}
+    ),
     DroneStatus.IN_FLIGHT: frozenset({DroneStatus.LANDING, DroneStatus.EMERGENCY_RTH}),
-    DroneStatus.LANDING: frozenset({DroneStatus.IDLE, DroneStatus.TERMINATED, DroneStatus.EMERGENCY_RTH}),
+    DroneStatus.LANDING: frozenset(
+        {DroneStatus.IDLE, DroneStatus.TERMINATED, DroneStatus.EMERGENCY_RTH}
+    ),
     DroneStatus.TERMINATED: frozenset(),  # 종결 상태: 추가 전이 영구 불허 (공리 2 및 금기 3)
-    DroneStatus.EMERGENCY_RTH: frozenset({DroneStatus.LANDING, DroneStatus.TERMINATED, DroneStatus.IDLE}),
+    DroneStatus.EMERGENCY_RTH: frozenset(
+        {DroneStatus.LANDING, DroneStatus.TERMINATED, DroneStatus.IDLE}
+    ),
 }
 
 MIN_BATTERY: Final[int] = 0
@@ -62,7 +73,7 @@ MAX_LONGITUDE: Final[float] = 180.0
 MIN_SPEED: Final[float] = 0.0
 
 
-def validate_telemetry_invariants(telemetry: TelemetrySnapshot) -> Tuple[str, ...]:
+def validate_telemetry_invariants(telemetry: TelemetrySnapshot) -> tuple[str, ...]:
     """공리 1(신호 불변성)을 순수 검증하고 위반 사유 튜플을 반환합니다."""
     violations = []
     if telemetry.battery < MIN_BATTERY or telemetry.battery > MAX_BATTERY:

@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
 """텔레메트리 원장 불변 엔티티 (Telemetry Record SSOT).
 
 CONSTITUTION.md 제2조 최소 데이터 스키마 규격을 100% 충족하는 순수 불변 데이터 클래스.
 외부 I/O 0건, Side-Effect 0건.
 """
+
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
 class TelemetryRecord:
     """원장에 영구 보존되는 단일 텔레메트리 불변 레코드 (SSOT)."""
+
     drone_id: str
     latitude: float
     longitude: float
@@ -19,7 +19,7 @@ class TelemetryRecord:
     battery: int
     status: str
     timestamp: str
-    id: Optional[int] = None
+    id: int | None = None
 
     def __post_init__(self) -> None:
         """데이터 무결성 가드 (공리 1)."""

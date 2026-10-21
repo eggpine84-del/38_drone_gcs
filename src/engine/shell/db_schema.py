@@ -1,19 +1,17 @@
-# -*- coding: utf-8 -*-
 # [파일명]: db_schema.py (대장 템플릿 - 데이터베이스 스키마 및 초기 시드 전담 금고)
 # [원칙] 1. P1 스키마 헌법(4대 메타컬럼/PK) | 2. 100% 멱등 DDL(CREATE TABLE IF NOT EXISTS) | 3. 기 존재 데이터 영구 보존
 # [SYSTEM] Senior Staff Engineer (Google/Amazon) - Safe, Readable, Scalable Code.
 import os
-import sqlite3
-from typing import Optional
 
 
-def init_db(db_path: Optional[str] = None) -> None:
+def init_db(db_path: str | None = None) -> None:
     """테이블 스키마 생성 및 초기 시드 데이터 멱등 삽입 (DDL 금고 전담)."""
     # 단일 커넥션 팩토리 동적 바인딩
     try:
         from src.engine.shell.db_adapter import get_db_connection
     except ImportError:
         import sys
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
         if current_dir not in sys.path:
             sys.path.insert(0, current_dir)
@@ -36,10 +34,15 @@ def init_db(db_path: Optional[str] = None) -> None:
 
     # 2. 멱등 컬럼 마이그레이션 표준 (SQLite / PostgreSQL 공통 호환: 기존 운영 DB 무중단 확장)
     try:
-        cur.execute("ALTER TABLE items ADD COLUMN description TEXT NOT NULL DEFAULT '';")
+        cur.execute(
+            "ALTER TABLE items ADD COLUMN description TEXT NOT NULL DEFAULT '';"
+        )
     except Exception as exc:
         import logging
-        logging.getLogger(__name__).debug("컬럼 마이그레이션 스킵(이미 존재): %s", str(exc))
+
+        logging.getLogger(__name__).debug(
+            "컬럼 마이그레이션 스킵(이미 존재): %s", str(exc)
+        )
 
     # 3. 멱등 초기 시드 데이터 주입 (기존 데이터 존재 시 스킵)
     cur.execute("SELECT COUNT(*) FROM items WHERE is_deleted = 0;")

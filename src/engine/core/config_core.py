@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """설정 순수 코어 검증기 (Config Pure Core).
 
 FCIS 헌법 준수: 외부 I/O 0건, Side-Effect 0건, 0.001초 결정론적 연산.
 포트, 보드레이트, 타임아웃, 임계치 등의 유효성을 검증합니다.
 """
-from typing import Tuple
 
 
 def validate_config_invariants(
@@ -12,7 +10,7 @@ def validate_config_invariants(
     mavlink_baudrate: int,
     heartbeat_timeout_seconds: float,
     low_battery_rth_threshold: int,
-) -> Tuple[str, ...]:
+) -> tuple[str, ...]:
     """설정값들의 불변량(Invariants)을 순수 검증하고 위반 사유 튜플을 반환합니다.
 
     Args:

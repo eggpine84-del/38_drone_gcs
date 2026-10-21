@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 """MAVLink 복수 포트/다중 기체 동시 리스닝 오케스트레이터 (Multi-Receiver).
 
 단일 포트 SysID 자동 분류 및 복수 포트 동시 리스닝을 총괄하는 서브모듈입니다.
 단일 책임 원칙(SRP)에 따라 mavlink 서브패키지로 격리되었습니다.
 """
-from typing import Any, List, Optional
+
+from typing import Any
+
 from src.engine.shell.drone_gcs_service import DroneGCSService
 from src.engine.shell.mavlink.receiver import MAVLinkReceiver
 
@@ -15,8 +16,8 @@ class MAVLinkMultiReceiver:
     def __init__(
         self,
         service: DroneGCSService,
-        connections: Optional[List[Any]] = None,
-        connection_strings: Optional[List[str]] = None,
+        connections: list[Any] | None = None,
+        connection_strings: list[str] | None = None,
         default_drone_id: str = "DRONE-01",
         auto_detect_sysid: bool = True,
     ) -> None:
@@ -30,7 +31,7 @@ class MAVLinkMultiReceiver:
             auto_detect_sysid: SysID 자동 분류 활성화 여부.
         """
         self._service = service
-        self._receivers: List[MAVLinkReceiver] = []
+        self._receivers: list[MAVLinkReceiver] = []
 
         if connections:
             for conn in connections:
@@ -44,7 +45,7 @@ class MAVLinkMultiReceiver:
                 )
             return
 
-        for conn_str in (connection_strings or []):
+        for conn_str in connection_strings or []:
             self._receivers.append(
                 MAVLinkReceiver(
                     drone_id=default_drone_id,

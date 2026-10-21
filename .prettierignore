@@ -1,0 +1,26 @@
+# Prettier 방탄 격리 (300줄 SRP 가드 및 빌드/캐시 격리)
+static/css/theme.css
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.git/
+
+# Jinja2 템플릿 문법 파괴 방지 (VS Code 내장 포매터 전담)
+*.html
+src/**/*.html
+
+# 테스트 가드 및 테스트 픽스처 성역 격리
+tests/
+
+# 에이전트 안전핀 및 훅/워크플로우 성역 격리
+.agents/
+
+# 영구 불변 표준 양식 성역 격리
+templates/
+
+# 아키텍처 문서 및 한글 마크다운 개행 깨짐 방지
+docs/
+*.md
+

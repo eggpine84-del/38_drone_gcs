@@ -1,17 +1,21 @@
-# -*- coding: utf-8 -*-
 # [파일명]: dashboard_routes.py
 # [목적]: 관제 대시보드 웹 화면 및 HTMX 실시간 조각 라우터
 import os
 from typing import Any
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from src.engine.core.mavlink_parser_core import resolve_active_drone_id
 from src.features.dashboard.core.dashboard_core import compute_dashboard_summary
-from src.features.dashboard.shell.dashboard_repository import get_all_active_drones_latest
 from src.features.dashboard.shell.command_dto import DroneCommandIn
-from src.features.dashboard.shell.flight_command_service import get_flight_command_service
+from src.features.dashboard.shell.dashboard_repository import (
+    get_all_active_drones_latest,
+)
+from src.features.dashboard.shell.flight_command_service import (
+    get_flight_command_service,
+)
 
 router = APIRouter(tags=["Dashboard"])
 
@@ -29,13 +33,17 @@ def get_dashboard_page(request: Request) -> Any:
     records = get_all_active_drones_latest()
     summary = compute_dashboard_summary(records)
     available_ids = [r["drone_id"] for r in records if "drone_id" in r]
-    default_id = (os.environ.get("DEFAULT_DRONE_ID") or "DRONE-01").strip() or "DRONE-01"
+    default_id = (
+        os.environ.get("DEFAULT_DRONE_ID") or "DRONE-01"
+    ).strip() or "DRONE-01"
 
     requested_id = request.query_params.get("drone_id", "").strip()
     if requested_id and (requested_id in available_ids or requested_id == default_id):
         active_drone_id = requested_id
     else:
-        active_drone_id = resolve_active_drone_id(available_ids, default_fallback=default_id)
+        active_drone_id = resolve_active_drone_id(
+            available_ids, default_fallback=default_id
+        )
 
     return templates.TemplateResponse(
         request=request,
@@ -54,13 +62,17 @@ def get_dashboard_stream(request: Request) -> Any:
     records = get_all_active_drones_latest()
     summary = compute_dashboard_summary(records)
     available_ids = [r["drone_id"] for r in records if "drone_id" in r]
-    default_id = (os.environ.get("DEFAULT_DRONE_ID") or "DRONE-01").strip() or "DRONE-01"
+    default_id = (
+        os.environ.get("DEFAULT_DRONE_ID") or "DRONE-01"
+    ).strip() or "DRONE-01"
 
     requested_id = request.query_params.get("drone_id", "").strip()
     if requested_id and (requested_id in available_ids or requested_id == default_id):
         active_drone_id = requested_id
     else:
-        active_drone_id = resolve_active_drone_id(available_ids, default_fallback=default_id)
+        active_drone_id = resolve_active_drone_id(
+            available_ids, default_fallback=default_id
+        )
 
     return templates.TemplateResponse(
         request=request,
@@ -73,7 +85,9 @@ def get_dashboard_stream(request: Request) -> Any:
     )
 
 
-async def _extract_command_payload(request: Request, content_type: str) -> dict[str, Any]:
+async def _extract_command_payload(
+    request: Request, content_type: str
+) -> dict[str, Any]:
     """요청 Content-Type에 맞추어 JSON 또는 Form 바디를 평탄하게 추출합니다."""
     if "application/json" in content_type:
         return await request.json()
@@ -84,6 +98,7 @@ async def _extract_command_payload(request: Request, content_type: str) -> dict[
     except Exception:
         # python-multipart 부재 시 순수 파이썬 urllib 파싱 안전망 (Zero-Crash)
         from urllib.parse import parse_qs
+
         raw_bytes = await request.body()
         parsed = parse_qs(raw_bytes.decode("utf-8"))
         body = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
@@ -118,7 +133,11 @@ async def send_flight_command(request: Request) -> Any:
             )
         return JSONResponse(
             status_code=400,
-            content={"success": False, "data": None, "error": {"code": "VAL_ERR", "message": str(exc)}},
+            content={
+                "success": False,
+                "data": None,
+                "error": {"code": "VAL_ERR", "message": str(exc)},
+            },
         )
 
     service = get_flight_command_service()

@@ -1,17 +1,18 @@
-# -*- coding: utf-8 -*-
 # [파일명]: geofence_core.py
 # [목적]: 지오펜스(Geo-Fence) 및 비행 금지 구역(NFZ) 순수 기하 연산 코어 (외부 I/O 0건)
-from dataclasses import dataclass
 import math
-from typing import Any, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
 class GeofenceResult:
     """지오펜스 판정 결과 불변 데이터 객체."""
+
     drone_id: str
     is_breached: bool
-    breach_type: Optional[str]
+    breach_type: str | None
     reason: str
     recommended_status: str
 
@@ -42,13 +43,9 @@ def _is_ray_intersecting_edge(
     return p1_lon == p2_lon or lon <= xinters
 
 
-def is_point_in_polygon(
-    lat: float,
-    lon: float,
-    polygon: Sequence[Any]
-) -> bool:
+def is_point_in_polygon(lat: float, lon: float, polygon: Sequence[Any]) -> bool:
     """점-다각형 Ray-Casting 순수 기하 알고리즘.
-    
+
     점(lat, lon)에서 발사한 반직선과 다각형 변의 교차 횟수가 홀수면 내부(True), 짝수면 외부(False).
     """
     n = len(polygon)
@@ -72,11 +69,7 @@ def is_point_in_polygon(
 
 
 def is_point_in_circle(
-    lat: float,
-    lon: float,
-    center_lat: float,
-    center_lon: float,
-    radius_meters: float
+    lat: float, lon: float, center_lat: float, center_lon: float, radius_meters: float
 ) -> bool:
     """Haversine 대원 거리 공식을 사용한 원형 구역 포함 여부 판정 (Pure Function)."""
     earth_radius = 6371000.0  # 지구 평균 반지름 (미터)
@@ -102,8 +95,8 @@ def evaluate_geofence(
     drone_id: str,
     latitude: float,
     longitude: float,
-    allowed_polygon: Optional[Sequence[Any]] = None,
-    nfz_list: Optional[Sequence[dict[str, Any]]] = None,
+    allowed_polygon: Sequence[Any] | None = None,
+    nfz_list: Sequence[dict[str, Any]] | None = None,
 ) -> GeofenceResult:
     """CONSTITUTION 4대 공리 3항(지오펜스 이탈 즉시 EMERGENCY_RTH) 종합 판정 순수 함수."""
     # 1. 좌표 물리 유효성 검문 (Fail-Safe)
@@ -117,7 +110,11 @@ def evaluate_geofence(
         )
 
     # 2. 인가 다각형 구역 이탈 판정 (단일 가드절)
-    if allowed_polygon and len(allowed_polygon) >= 3 and not is_point_in_polygon(latitude, longitude, allowed_polygon):
+    if (
+        allowed_polygon
+        and len(allowed_polygon) >= 3
+        and not is_point_in_polygon(latitude, longitude, allowed_polygon)
+    ):
         return GeofenceResult(
             drone_id=drone_id,
             is_breached=True,
@@ -127,7 +124,7 @@ def evaluate_geofence(
         )
 
     # 3. 비행 금지 구역(NFZ) 침범 판정
-    for nfz in (nfz_list or ()):
+    for nfz in nfz_list or ():
         c_lat = float(nfz.get("latitude", 0.0))
         c_lon = float(nfz.get("longitude", 0.0))
         radius = float(nfz.get("radius_meters", 0.0))

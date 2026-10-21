@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # [파일명]: geofence_routes.py
 # [목적]: 지오펜스 감찰 엔드포인트 (09 백본 B1 단일 봉투 규격 준수)
 from typing import Any
+
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse
 
 from src.features.geofence.shell.geofence_dto import GeofenceCheckRequest
 from src.features.geofence.shell.geofence_service import GeofenceService

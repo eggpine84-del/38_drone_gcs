@@ -1,22 +1,24 @@
-# -*- coding: utf-8 -*-
 # [파일명]: mission_core.py
 # [목적]: 비행 명령 유효성 검증 및 웨이포인트 진행률 순수 연산 코어 (외부 I/O 0건)
-from dataclasses import dataclass
 import math
-from typing import Any, Final, Optional, Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any, Final
 
 
 @dataclass(frozen=True)
 class CommandResult:
     """비행 명령 판정 결과 불변 데이터 객체."""
+
     is_allowed: bool
-    next_status: Optional[str]
+    next_status: str | None
     reason: str
 
 
 @dataclass(frozen=True)
 class ProgressResult:
     """웨이포인트 미션 진행률 결과 불변 데이터 객체."""
+
     current_index: int
     total_count: int
     progress_pct: int
@@ -32,15 +34,17 @@ def _eval_arm(status: str, battery: int) -> CommandResult:
         return CommandResult(
             is_allowed=False,
             next_status=None,
-            reason=f"대기(IDLE) 상태에서만 시동(ARM)을 걸 수 있습니다. 현재 상태: {status}"
+            reason=f"대기(IDLE) 상태에서만 시동(ARM)을 걸 수 있습니다. 현재 상태: {status}",
         )
     if battery <= 15:
         return CommandResult(
             is_allowed=False,
             next_status=None,
-            reason=f"배터리 15% 이하({battery}%)에서는 안전을 위해 시동을 켤 수 없습니다."
+            reason=f"배터리 15% 이하({battery}%)에서는 안전을 위해 시동을 켤 수 없습니다.",
         )
-    return CommandResult(is_allowed=True, next_status="ARMED", reason="시동(ARMED) 승인 완료")
+    return CommandResult(
+        is_allowed=True, next_status="ARMED", reason="시동(ARMED) 승인 완료"
+    )
 
 
 def _eval_takeoff(status: str, battery: int) -> CommandResult:
@@ -48,15 +52,17 @@ def _eval_takeoff(status: str, battery: int) -> CommandResult:
         return CommandResult(
             is_allowed=False,
             next_status=None,
-            reason=f"시동(ARMED) 상태에서만 이륙(TAKEOFF) 명령을 하달할 수 있습니다. 현재 상태: {status}"
+            reason=f"시동(ARMED) 상태에서만 이륙(TAKEOFF) 명령을 하달할 수 있습니다. 현재 상태: {status}",
         )
     if battery <= 15:
         return CommandResult(
             is_allowed=False,
             next_status=None,
-            reason=f"배터리 15% 이하({battery}%)에서는 이륙 명령이 거부됩니다."
+            reason=f"배터리 15% 이하({battery}%)에서는 이륙 명령이 거부됩니다.",
         )
-    return CommandResult(is_allowed=True, next_status="TAKEOFF", reason="이륙(TAKEOFF) 승인 완료")
+    return CommandResult(
+        is_allowed=True, next_status="TAKEOFF", reason="이륙(TAKEOFF) 승인 완료"
+    )
 
 
 def _eval_land(status: str, battery: int) -> CommandResult:
@@ -64,9 +70,11 @@ def _eval_land(status: str, battery: int) -> CommandResult:
         return CommandResult(
             is_allowed=False,
             next_status=None,
-            reason=f"비행(IN_FLIGHT/TAKEOFF) 상태에서만 착륙(LAND) 명령이 유효합니다. 현재 상태: {status}"
+            reason=f"비행(IN_FLIGHT/TAKEOFF) 상태에서만 착륙(LAND) 명령이 유효합니다. 현재 상태: {status}",
         )
-    return CommandResult(is_allowed=True, next_status="LANDING", reason="착륙(LANDING) 절차 승인")
+    return CommandResult(
+        is_allowed=True, next_status="LANDING", reason="착륙(LANDING) 절차 승인"
+    )
 
 
 def _eval_rth(status: str, battery: int) -> CommandResult:
@@ -74,9 +82,11 @@ def _eval_rth(status: str, battery: int) -> CommandResult:
         return CommandResult(
             is_allowed=False,
             next_status=None,
-            reason="이미 종료(TERMINATED)된 기체에는 귀환 명령을 하달할 수 없습니다."
+            reason="이미 종료(TERMINATED)된 기체에는 귀환 명령을 하달할 수 없습니다.",
         )
-    return CommandResult(is_allowed=True, next_status="EMERGENCY_RTH", reason="비상 귀환(RTH) 발령")
+    return CommandResult(
+        is_allowed=True, next_status="EMERGENCY_RTH", reason="비상 귀환(RTH) 발령"
+    )
 
 
 _COMMAND_EVALUATORS = {
@@ -87,11 +97,7 @@ _COMMAND_EVALUATORS = {
 }
 
 
-def evaluate_command(
-    current_status: str,
-    command: str,
-    battery: int
-) -> CommandResult:
+def evaluate_command(current_status: str, command: str, battery: int) -> CommandResult:
     """CONSTITUTION 5대 금기 1항(선행 상태 검증 없는 임의 비행 명령 차단) 순수 판정."""
     cmd = command.strip().upper()
     status = current_status.strip().upper()
@@ -100,7 +106,7 @@ def evaluate_command(
         return CommandResult(
             is_allowed=False,
             next_status=None,
-            reason=f"정의되지 않은 비인가 명령입니다: '{command}'"
+            reason=f"정의되지 않은 비인가 명령입니다: '{command}'",
         )
 
     evaluator = _COMMAND_EVALUATORS.get(cmd)
@@ -139,7 +145,10 @@ def _haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) ->
     dphi = math.radians(lat2 - lat1)
     dlam = math.radians(lon2 - lon1)
 
-    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2.0) ** 2
+    a = (
+        math.sin(dphi / 2.0) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2.0) ** 2
+    )
     a = min(1.0, max(0.0, a))
     return r * 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
 
@@ -155,11 +164,15 @@ def calculate_waypoint_progress(
     """현재 드론 좌표 기반 3차원 도달 판정 및 미션 진행률(0~100%) 계산 (Pure Function)."""
     total = len(waypoints)
     if total == 0:
-        return ProgressResult(current_index=0, total_count=0, progress_pct=0, is_completed=True)
+        return ProgressResult(
+            current_index=0, total_count=0, progress_pct=0, is_completed=True
+        )
 
     idx = max(0, min(current_index, total))
     if idx >= total:
-        return ProgressResult(current_index=total, total_count=total, progress_pct=100, is_completed=True)
+        return ProgressResult(
+            current_index=total, total_count=total, progress_pct=100, is_completed=True
+        )
 
     target_wp = waypoints[idx]
     t_lat = float(target_wp.get("latitude", 0.0))
@@ -169,13 +182,13 @@ def calculate_waypoint_progress(
     # 3차원 거리 계산 (수평 거리 + 고도 차이)
     h_dist = _haversine_distance_m(current_lat, current_lon, t_lat, t_lon)
     v_dist = abs(current_alt - t_alt)
-    total_dist = math.sqrt(h_dist ** 2 + v_dist ** 2)
+    total_dist = math.sqrt(h_dist**2 + v_dist**2)
 
     # 목표 지점 도달 시 다음 인덱스로 전진
     if total_dist <= arrival_threshold_m:
         idx += 1
 
-    is_completed = (idx >= total)
+    is_completed = idx >= total
     progress_pct = int((idx / total) * 100) if total > 0 else 0
 
     return ProgressResult(

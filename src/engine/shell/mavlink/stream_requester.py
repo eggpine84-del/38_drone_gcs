@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # [파일명]: stream_requester.py
 # [목적]: FCU 대상 GCS 하트비트 및 5대 텔레메트리 스트림 전송 능동 요청 전담 헬퍼 (Egress)
 import logging

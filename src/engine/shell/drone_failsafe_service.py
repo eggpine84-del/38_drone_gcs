@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """드론 페일세이프 셸 서비스 (Drone Failsafe Service Shell).
 
 하트비트 수신 추적 및 3초 이상 통신 두절 시 EMERGENCY_RTH 강제 전환 및 멱등 원장 보존.
 """
+
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 from src.engine.core.drone_state_machine import DroneStatus
 from src.engine.core.failsafe_evaluator import evaluate_heartbeat_timeout
@@ -20,6 +19,7 @@ DEFAULT_FAILSAFE_BATTERY_PERCENT: int = 100
 @dataclass(frozen=True)
 class FailsafeResult:
     """비상 감찰 및 페일세이프 전이 결과 봉투."""
+
     drone_id: str
     is_timeout: bool
     is_recorded: bool
@@ -33,21 +33,25 @@ class DroneFailsafeService:
 
     def __init__(self, repository: DroneLedgerRepository) -> None:
         self._repository = repository
-        self._last_heartbeats: Dict[str, float] = {}
+        self._last_heartbeats: dict[str, float] = {}
 
     def record_heartbeat(self, drone_id: str, timestamp: float) -> None:
         """드론의 최신 하트비트 시각을 기록합니다."""
         self._last_heartbeats[drone_id] = timestamp
 
-    def get_last_heartbeat(self, drone_id: str) -> Optional[float]:
+    def get_last_heartbeat(self, drone_id: str) -> float | None:
         """특정 드론의 마지막 하트비트 시각을 조회합니다."""
         return self._last_heartbeats.get(drone_id)
 
-    def check_drone_failsafe(self, drone_id: str, current_time: float) -> FailsafeResult:
+    def check_drone_failsafe(
+        self, drone_id: str, current_time: float
+    ) -> FailsafeResult:
         """특정 드론의 하트비트 타임아웃을 감찰하고 멱등하게 RTH를 발령합니다."""
         last_time = self._last_heartbeats.get(drone_id, current_time)
         latest_record = self._repository.get_latest(drone_id)
-        current_status = DroneStatus(latest_record.status) if latest_record else DroneStatus.IDLE
+        current_status = (
+            DroneStatus(latest_record.status) if latest_record else DroneStatus.IDLE
+        )
 
         # Pure Core 판정 위임 (외부 I/O 0건)
         eval_result = evaluate_heartbeat_timeout(
@@ -82,7 +86,9 @@ class DroneFailsafeService:
         lon = latest_record.longitude if latest_record else DEFAULT_FAILSAFE_LONGITUDE
         alt = latest_record.altitude if latest_record else 0.0
         spd = latest_record.speed if latest_record else 0.0
-        bat = latest_record.battery if latest_record else DEFAULT_FAILSAFE_BATTERY_PERCENT
+        bat = (
+            latest_record.battery if latest_record else DEFAULT_FAILSAFE_BATTERY_PERCENT
+        )
 
         rth_record = TelemetryRecord(
             drone_id=drone_id,

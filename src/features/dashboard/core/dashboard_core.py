@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # [파일명]: dashboard_core.py
 # [목적]: 관제 대시보드 순수 비즈니스 연산 코어 (Pure Functional Core, 외부 I/O 0건)
 from typing import Any, Final

@@ -1,16 +1,21 @@
-# -*- coding: utf-8 -*-
 # [파일명]: mission_service.py
 # [목적]: 비행 명령 조율 및 원장 상태 전이 적재 Shell 서비스
-from datetime import datetime, timezone
-from typing import Any, Optional, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
+from src.engine.core.telemetry_record import TelemetryRecord
+from src.engine.shell.drone_repository import (
+    DroneLedgerRepository,
+    SqliteDroneLedgerRepository,
+)
 from src.features.mission.core.mission_core import (
     calculate_waypoint_progress,
     evaluate_command,
 )
-from src.features.mission.shell.mission_dto import CommandRequest, MissionProgressRequest
-from src.engine.core.telemetry_record import TelemetryRecord
-from src.engine.shell.drone_repository import DroneLedgerRepository, SqliteDroneLedgerRepository
+from src.features.mission.shell.mission_dto import (
+    CommandRequest,
+    MissionProgressRequest,
+)
 
 # 원장에 사전 텔레메트리 이력이 없을 때 적용하는 기본 미션 기준값
 DEFAULT_MISSION_LATITUDE: float = 37.5665
@@ -21,10 +26,12 @@ DEFAULT_MISSION_BATTERY_PERCENT: int = 100
 class MissionService:
     """비행 명령 선행 검증 및 원장 상태 전이 적재 Shell 서비스."""
 
-    def __init__(self, repository: Optional[DroneLedgerRepository] = None) -> None:
+    def __init__(self, repository: DroneLedgerRepository | None = None) -> None:
         self._repo = repository or SqliteDroneLedgerRepository()
 
-    def execute_command(self, req: CommandRequest) -> Tuple[bool, Optional[dict[str, Any]], Optional[str]]:
+    def execute_command(
+        self, req: CommandRequest
+    ) -> tuple[bool, dict[str, Any] | None, str | None]:
         """선행 상태 검증 통과 시에만 명령을 하달하고 원장에 불변 기록."""
         latest = self._repo.get_latest(req.drone_id)
         current_status = latest.status if latest else "IDLE"
@@ -42,7 +49,7 @@ class MissionService:
         assert result.next_status is not None
 
         # 상태 전이 승인 시 원장에 감사 레코드 영구 적재 (Append-Only)
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
         lat = latest.latitude if latest else DEFAULT_MISSION_LATITUDE
         lon = latest.longitude if latest else DEFAULT_MISSION_LONGITUDE
         alt = latest.altitude if latest else 0.0
@@ -64,14 +71,18 @@ class MissionService:
         )
         saved = self._repo.append(new_record)
 
-        return True, {
-            "record_id": saved.id,
-            "drone_id": req.drone_id,
-            "command": req.command.upper(),
-            "previous_status": current_status,
-            "next_status": result.next_status,
-            "timestamp": saved.timestamp,
-        }, None
+        return (
+            True,
+            {
+                "record_id": saved.id,
+                "drone_id": req.drone_id,
+                "command": req.command.upper(),
+                "previous_status": current_status,
+                "next_status": result.next_status,
+                "timestamp": saved.timestamp,
+            },
+            None,
+        )
 
     def track_progress(self, req: MissionProgressRequest) -> dict[str, Any]:
         """현재 좌표와 웨이포인트 목록 기반 진행률 계산."""
