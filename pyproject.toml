@@ -24,3 +24,17 @@ dev = [
 [tool.uv]
 link-mode = "copy"
 
+[tool.ruff]
+# 보일러플레이트, 테스트 픽스처 및 문서 폴더 자동 수정 방지
+exclude = [
+    ".git",
+    ".agents",
+    "docs",
+    "templates",
+    "tests",
+]
+
+[tool.ruff.lint]
+# re-export 인터페이스 임의 삭제 원천 차단
+unfixable = ["F401"]
+
